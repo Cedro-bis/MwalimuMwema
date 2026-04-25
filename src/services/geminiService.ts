@@ -100,5 +100,47 @@ export const GeminiService = {
     }));
     
     return data;
+  },
+
+  /**
+   * Generates the latest scientific news across multiple domains.
+   */
+  async generateScienceNews(): Promise<ScienceNews[]> {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Génère les dernières actualités scientifiques, innovations et découvertes les plus marquantes.
+      Organise-les par domaines (ex: Astronomie, Médecine, Intelligence Artificielle, Environnement, Physique).
+      Pour chaque domaine, inclus 2 à 3 actualités récentes avec un titre, un résumé court, une description détaillée, la date et l'impact potentiel.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              domain: { type: Type.STRING },
+              items: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    title: { type: Type.STRING },
+                    summary: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    date: { type: Type.STRING },
+                    impact: { type: Type.STRING }
+                  },
+                  required: ["id", "title", "summary", "description", "date", "impact"]
+                }
+              }
+            },
+            required: ["domain", "items"]
+          }
+        }
+      }
+    });
+
+    return JSON.parse(response.text || "[]") as ScienceNews[];
   }
 };

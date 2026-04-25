@@ -19,10 +19,17 @@ import {
   Loader2,
   Youtube,
   Lock,
-  FileText
+  FileText,
+  Newspaper,
+  Microscope,
+  Stethoscope,
+  Rocket,
+  Cpu,
+  Globe,
+  Zap
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { Level, Curriculum, Chapter } from './types';
+import { Level, Curriculum, Chapter, ScienceNews } from './types';
 import { GeminiService } from './services/geminiService';
 import { cn } from './lib/utils';
 
@@ -74,11 +81,12 @@ const Card = ({ children, className, padding = true }: { children: React.ReactNo
 // --- Sections ---
 
 const App = () => {
-  const [view, setView] = useState<'onboarding' | 'curriculum' | 'lesson' | 'quiz'>('onboarding');
+  const [view, setView] = useState<'onboarding' | 'curriculum' | 'lesson' | 'quiz' | 'news'>('onboarding');
   const [level, setLevel] = useState<Level>('Lycée');
   const [subject, setSubject] = useState('');
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
   const [activeChapter, setActiveChapter] = useState<Chapter | null>(null);
+  const [scienceNews, setScienceNews] = useState<ScienceNews[]>([]);
   const [loading, setLoading] = useState(false);
   const [completedChapters, setCompletedChapters] = useState<string[]>([]);
   
@@ -139,6 +147,19 @@ const App = () => {
     setQuizScore(score);
     if (!completedChapters.includes(activeChapter.id)) {
       setCompletedChapters([...completedChapters, activeChapter.id]);
+    }
+  };
+
+  const handleFetchNews = async () => {
+    setLoading(true);
+    try {
+      const data = await GeminiService.generateScienceNews();
+      setScienceNews(data);
+      setView('news');
+    } catch (error) {
+      console.error("Failed to fetch science news:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -247,18 +268,44 @@ const App = () => {
                 </Button>
               </Card>
 
-              <Card className="md:col-span-4 bg-indigo-900 p-8 text-indigo-100 flex flex-col justify-center gap-6 border-none">
+              <Card className="md:col-span-4 bg-indigo-900 p-8 text-indigo-100 flex flex-col justify-between gap-6 border-none">
                 <div className="space-y-4">
                   <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
                     <FileText className="text-white w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white">Prêt à réviser ?</h3>
+                  <h3 className="text-2xl font-bold text-white tracking-tight">Actualités & Découvertes</h3>
                   <p className="text-sm opacity-80 leading-relaxed font-medium">
-                    Chaque programme inclut des leçons détaillées, des ressources vidéo sélectionnées et des évaluations intelligentes.
+                    Restez informé des dernières avancées scientifiques et innovations technologiques.
                   </p>
                 </div>
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                   <p className="text-xs italic opacity-60">"L'éducation est l'arme la plus puissante pour changer le monde."</p>
+                <Button 
+                  onClick={handleFetchNews} 
+                  variant="dark" 
+                  className="w-full bg-white/10 hover:bg-white/20 border-white/10 rounded-2xl py-4 flex items-center justify-center gap-2"
+                >
+                  <Newspaper className="w-5 h-5" /> Explorer l'actu
+                </Button>
+              </Card>
+
+              <Card className="md:col-span-12 p-8 bg-slate-100 border-none flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="flex items-center gap-6">
+                  <div className="flex -space-x-3">
+                    {[1,2,3,4].map(i => (
+                      <img 
+                        key={i}
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i * 123}`} 
+                        alt="user" 
+                        className="w-12 h-12 rounded-full border-4 border-slate-100 bg-white shadow-sm"
+                      />
+                    ))}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800 tracking-tight">+5,000 étudiants</p>
+                    <p className="text-sm text-slate-500 font-medium">utilisent déjà MwalimuMwema quotidiennement.</p>
+                  </div>
+                </div>
+                <div className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white/50 px-8">
+                   <p className="text-xs italic text-slate-400 font-medium whitespace-nowrap">"L'éducation est l'arme la plus puissante pour changer le monde."</p>
                 </div>
               </Card>
             </motion.div>
@@ -350,6 +397,75 @@ const App = () => {
                    <Brain className="w-40 h-40 text-white" />
                 </div>
               </Card>
+            </motion.div>
+          )}
+
+          {/* --- SCIENCE NEWS BENTO GRID --- */}
+          {view === 'news' && (
+            <motion.div 
+              key="news"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <button 
+                  onClick={() => setView('onboarding')}
+                  className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors font-bold text-xs uppercase tracking-widest"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Retour à l'accueil
+                </button>
+                <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100">
+                   <Newspaper className="w-4 h-4" /> Innovation & Découvertes
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                {scienceNews.map((domain, domainIdx) => {
+                  const domainIcons: Record<string, any> = {
+                    'Astronomie': Rocket,
+                    'Médecine': Stethoscope,
+                    'Intelligence Artificielle': Cpu,
+                    'Environnement': Globe,
+                    'Physique': Zap,
+                  };
+                  const Icon = domainIcons[domain.domain] || Microscope;
+                  
+                  return (
+                    <React.Fragment key={domainIdx}>
+                      <Card className={cn(
+                        "p-8 flex flex-col gap-6",
+                        domainIdx % 3 === 0 ? "md:col-span-8" : "md:col-span-4"
+                      )}>
+                        <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
+                          <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
+                            <Icon className="w-6 h-6" />
+                          </div>
+                          <h2 className="text-xl font-bold text-slate-800 tracking-tight">{domain.domain}</h2>
+                        </div>
+                        <div className="space-y-8">
+                          {domain.items.map((item, itemIdx) => (
+                            <div key={itemIdx} className="space-y-3">
+                              <div className="flex justify-between items-start gap-4">
+                                <h3 className="text-lg font-bold text-indigo-900 leading-tight">{item.title}</h3>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{item.date}</span>
+                              </div>
+                              <p className="text-sm font-medium text-slate-500 leading-relaxed italic">{item.summary}</p>
+                              <p className="text-sm text-slate-600 leading-relaxed">{item.description}</p>
+                              <div className="pt-2">
+                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                                  Impact: {item.impact}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
             </motion.div>
           )}
 

@@ -27,3 +27,15 @@ export interface Curriculum {
   subject: string;
   chapters: Chapter[];
 }
+
+export interface ScienceNews {
+  domain: string;
+  items: {
+    id: string;
+    title: string;
+    summary: string;
+    description: string;
+    date: string;
+    impact: string;
+  }[];
+}
