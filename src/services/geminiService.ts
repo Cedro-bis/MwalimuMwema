@@ -4,7 +4,7 @@
  */
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Level, Curriculum, Chapter, QuizQuestion } from "./types";
+import { Level, Curriculum, Chapter, QuizQuestion, ScienceNews } from "./types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -103,14 +103,19 @@ export const GeminiService = {
   },
 
   /**
-   * Generates the latest scientific news across multiple domains.
+   * Generates the latest scientific news across multiple domains or a specific one.
    */
-  async generateScienceNews(): Promise<ScienceNews[]> {
+  async generateScienceNews(specificDomain?: string): Promise<ScienceNews[]> {
+    const prompt = specificDomain 
+      ? `Génère les dernières actualités scientifiques, innovations et découvertes les plus marquantes spécifiquement pour le domaine : "${specificDomain}". Assure-toi que les actualités soient les plus récentes possibles.`
+      : `Génère les dernières actualités scientifiques, innovations et découvertes les plus marquantes. Organise-les par domaines (ex: Astronomie, Médecine, Intelligence Artificielle, Environnement, Physique). Assure-toi que les actualités soient les plus récentes possibles.`;
+
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Génère les dernières actualités scientifiques, innovations et découvertes les plus marquantes.
-      Organise-les par domaines (ex: Astronomie, Médecine, Intelligence Artificielle, Environnement, Physique).
-      Pour chaque domaine, inclus 2 à 3 actualités récentes avec un titre, un résumé court, une description détaillée, la date et l'impact potentiel.`,
+      contents: `${prompt}
+      Pour chaque domaine, inclus 2 à 3 actualités récentes avec :
+      1. Un titre, un résumé court, une description détaillée, la date et l'impact potentiel.
+      2. Une liste de 2 à 3 ressources complémentaires (livres disponibles, vidéos YouTube, articles de recherche) avec type, titre et un lien URL factuel ou de recherche (ex: recherche YouTube ou Google Books).`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -129,9 +134,21 @@ export const GeminiService = {
                     summary: { type: Type.STRING },
                     description: { type: Type.STRING },
                     date: { type: Type.STRING },
-                    impact: { type: Type.STRING }
+                    impact: { type: Type.STRING },
+                    resources: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          type: { type: Type.STRING, enum: ["book", "video", "article"] },
+                          title: { type: Type.STRING },
+                          url: { type: Type.STRING }
+                        },
+                        required: ["type", "title", "url"]
+                      }
+                    }
                   },
-                  required: ["id", "title", "summary", "description", "date", "impact"]
+                  required: ["id", "title", "summary", "description", "date", "impact", "resources"]
                 }
               }
             },

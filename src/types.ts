@@ -37,5 +37,10 @@ export interface ScienceNews {
     description: string;
     date: string;
     impact: string;
+    resources: {
+      type: 'book' | 'video' | 'article';
+      title: string;
+      url: string;
+    }[];
   }[];
 }
