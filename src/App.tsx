@@ -18,9 +18,10 @@ import {
   ArrowLeft,
   Loader2,
   Youtube,
-  Lock,
+  Trash2,
   FileText,
   Newspaper,
+  History,
   Microscope,
   Stethoscope,
   Rocket,
@@ -29,7 +30,7 @@ import {
   Zap
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { Level, Curriculum, Chapter, ScienceNews } from './types';
+import { Level, Curriculum, Chapter, ScienceNews, HistoryItem } from './types';
 import { GeminiService } from './services/geminiService';
 import { cn } from './lib/utils';
 
@@ -51,10 +52,10 @@ const Button = ({
   loading?: boolean;
 }) => {
   const variants = {
-    primary: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100",
-    secondary: "bg-white text-indigo-600 hover:bg-indigo-50 border border-slate-200 shadow-sm",
-    outline: "bg-slate-50 border border-slate-200 text-slate-600 hover:border-indigo-400 hover:text-indigo-600",
-    dark: "bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-200"
+    primary: "bg-black text-white hover:bg-zinc-800 transition-all duration-300",
+    secondary: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-100",
+    outline: "bg-white border-2 border-black text-black hover:bg-black hover:text-white",
+    dark: "bg-zinc-950 text-white hover:bg-black shadow-lg"
   };
 
   return (
@@ -62,7 +63,7 @@ const Button = ({
       onClick={onClick}
       disabled={disabled || loading}
       className={cn(
-        "px-6 py-3 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm",
+        "px-10 py-5 rounded-full font-bold transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-base tracking-tight",
         variants[variant],
         className
       )}
@@ -73,7 +74,7 @@ const Button = ({
 };
 
 const Card = ({ children, className, padding = true }: { children: React.ReactNode; className?: string; padding?: boolean }) => (
-  <div className={cn("bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden", padding && "p-6", className)}>
+  <div className={cn("bg-white border border-black rounded-[3rem] overflow-hidden", padding && "p-10", className)}>
     {children}
   </div>
 );
@@ -89,6 +90,7 @@ const App = () => {
   const [scienceNews, setScienceNews] = useState<ScienceNews[]>([]);
   const [newsSearchQuery, setNewsSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [completedChapters, setCompletedChapters] = useState<string[]>([]);
   const [quizScore, setQuizScore] = useState<number | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
@@ -106,7 +108,36 @@ const App = () => {
   useEffect(() => {
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
     setQuote(randomQuote);
+
+    // Load History
+    const saved = localStorage.getItem('mwalimumwema_history');
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse history", e);
+      }
+    }
   }, []);
+
+  // Sync state to History
+  useEffect(() => {
+    if (!curriculum) return;
+
+    const historyId = `${curriculum.level}_${curriculum.subject}`;
+    const newHistory: HistoryItem[] = [
+      {
+        id: historyId,
+        curriculum,
+        completedChapters,
+        lastUpdated: Date.now()
+      },
+      ...history.filter(h => h.id !== historyId)
+    ].slice(0, 5); // Keep last 5
+
+    setHistory(newHistory);
+    localStorage.setItem('mwalimumwema_history', JSON.stringify(newHistory));
+  }, [curriculum, completedChapters]);
 
   const handleStartCourse = async () => {
     if (!subject.trim()) return;
@@ -178,77 +209,92 @@ const App = () => {
     }
   };
 
+  const handleResumeCourse = (historyItem: HistoryItem) => {
+    setCurriculum(historyItem.curriculum);
+    setCompletedChapters(historyItem.completedChapters);
+    setView('curriculum');
+  };
+
+  const handleDeleteHistory = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const newHistory = history.filter(h => h.id !== id);
+    setHistory(newHistory);
+    localStorage.setItem('mwalimumwema_history', JSON.stringify(newHistory));
+  };
+
   const progress = curriculum ? Math.round((completedChapters.length / curriculum.chapters.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
       
       {/* --- Header --- */}
-      <header className="fixed top-0 left-0 right-0 h-20 bg-slate-50/80 backdrop-blur-md z-50 px-8 flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 h-24 bg-white/90 backdrop-blur-xl z-50 px-12 flex items-center justify-between border-b border-black">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('onboarding')}>
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-            <GraduationCap className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-2xl font-bold text-indigo-900 flex items-center gap-2">
-            MwalimuMwema <span className="text-indigo-400 font-light hidden sm:inline">| L'éducation propulsée par l'IA</span>
+          <h1 className="text-3xl font-black text-black tracking-tighter">
+            MwalimuMwema
           </h1>
         </div>
         
         {curriculum && view !== 'onboarding' && (
-          <div className="flex items-center gap-4">
-            <div className="bg-white border border-slate-200 px-5 py-2 rounded-full text-sm font-medium text-slate-600 shadow-sm hidden md:flex items-center gap-2">
-              Niveau: <span className="text-indigo-600 font-bold">{curriculum.level}</span>
-              <span className="text-slate-300 mx-1">|</span>
-              <span className="text-slate-700">{curriculum.subject}</span>
+          <div className="flex items-center gap-6">
+            <div className="bg-white border border-black px-6 py-2.5 rounded-full text-sm font-bold text-black hidden md:flex items-center gap-3">
+              <span className="opacity-40 uppercase tracking-widest text-[10px]">Niveau</span>
+              <span>{curriculum.level}</span>
+              <span className="w-1 h-1 rounded-full bg-black/20" />
+              <span>{curriculum.subject}</span>
             </div>
-            <div className="w-10 h-10 bg-slate-200 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-slate-500 overflow-hidden">
+            <div className="w-12 h-12 bg-black rounded-full border border-black flex items-center justify-center overflow-hidden">
                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${curriculum.subject}`} alt="avatar" />
             </div>
           </div>
         )}
       </header>
 
-      <main className="pt-28 pb-12 px-8 max-w-7xl mx-auto min-h-screen">
+      <main className="pt-32 pb-24 px-12 max-w-7xl mx-auto min-h-screen">
         <AnimatePresence mode="wait">
           
-          {/* --- ONBOARDING (Bento Styled) --- */}
+          {/* --- ONBOARDING --- */}
           {view === 'onboarding' && (
             <motion.div 
               key="onboarding"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-5xl mx-auto"
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="grid grid-cols-1 md:grid-cols-12 gap-10"
             >
-              <Card className="md:col-span-12 p-12 text-center bg-white border-transparent shadow-xl shadow-slate-100 flex flex-col items-center">
-                <div className="mb-8 p-6 bg-indigo-50 rounded-3xl inline-block shadow-inner ring-1 ring-indigo-100">
-                  <Brain className="w-16 h-16 text-indigo-600" />
-                </div>
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 text-indigo-900 leading-[1.1]">
-                   Apprenez sans limites, <br /><span className="text-indigo-500">guidé par l'intelligence.</span>
+              <div className="md:col-span-12 py-10 text-center flex flex-col items-center">
+                <motion.div 
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="mb-10 text-black"
+                >
+                  <Brain className="w-20 h-20" />
+                </motion.div>
+                <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 text-black leading-[0.9]">
+                   Apprenez <br />sans limites.
                 </h1>
-                <p className="text-lg text-slate-500 max-w-xl mx-auto mb-2 text-center">
+                <p className="text-xl text-black/60 max-w-2xl mx-auto font-medium leading-relaxed">
                    MwalimuMwema crée pour vous un parcours d'apprentissage complet sur n'importe quel sujet, 
                    adapté précisément à votre niveau académique.
                 </p>
-              </Card>
+              </div>
 
-              <Card className="md:col-span-8 p-8 space-y-8 h-full flex flex-col justify-center">
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4">
-                      Étape 1: Votre Niveau
+              <Card className="md:col-span-8 p-12 space-y-12">
+                <div className="space-y-10">
+                  <div className="space-y-6">
+                    <label className="block text-[10px] font-black text-black uppercase tracking-[0.3em]">
+                      01 / Votre Niveau
                     </label>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       {['Primaire', 'Collège', 'Lycée', 'Université'].map((l) => (
                         <button
                           key={l}
                           onClick={() => setLevel(l as Level)}
                           className={cn(
-                            "px-4 py-4 rounded-2xl border transition-all font-bold text-xs uppercase tracking-wider",
+                            "px-6 py-5 rounded-[1.5rem] border-2 transition-all font-bold text-xs uppercase tracking-widest",
                             level === l 
-                              ? "border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-100" 
-                              : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200"
+                              ? "border-black bg-black text-white" 
+                              : "border-black/5 bg-white text-black/40 hover:border-black/20"
                           )}
                         >
                           {l}
@@ -257,18 +303,18 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4">
-                      Étape 2: Le Sujet
+                  <div className="space-y-6">
+                    <label className="block text-[10px] font-black text-black uppercase tracking-[0.3em]">
+                      02 / Le Sujet
                     </label>
                     <div className="relative">
-                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-black/20" />
                       <input 
                         type="text"
-                        placeholder="Ex: Algèbre linéaire, Histoire du monde, Physique quantique..."
+                        placeholder="Ex: Chimie organique, IA..."
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
-                        className="w-full pl-14 pr-4 py-5 bg-slate-50 border-none rounded-[1.5rem] focus:ring-2 focus:ring-indigo-500 transition-all outline-none text-lg font-medium"
+                        className="w-full pl-16 pr-6 py-6 bg-white border-2 border-black rounded-[2rem] focus:ring-4 focus:ring-black/5 transition-all outline-none text-xl font-bold placeholder:text-black/10"
                       />
                     </div>
                   </div>
@@ -276,33 +322,35 @@ const App = () => {
 
                 <Button 
                   onClick={handleStartCourse} 
-                  className="w-full h-16 text-lg rounded-[1.5rem]"
+                  variant="primary"
+                  className="w-full h-20 text-xl"
                   loading={loading}
                 >
-                  Générer mon parcours <ArrowRight className="w-6 h-6" />
+                  Générer le parcours <ArrowRight className="w-6 h-6 ml-2" />
                 </Button>
               </Card>
 
-              <Card className="md:col-span-4 bg-indigo-900 p-8 text-indigo-100 flex flex-col justify-between gap-6 border-none">
-                <div className="space-y-4">
-                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
-                    <FileText className="text-white w-6 h-6" />
+              <div className="md:col-span-4 flex flex-col gap-10">
+                <Card className="bg-black text-white p-10 flex flex-col justify-between h-full border-none">
+                  <div className="space-y-6">
+                    <Newspaper className="w-10 h-10" />
+                    <h3 className="text-3xl font-black tracking-tight leading-none">Actualités.</h3>
+                    <p className="text-white/60 font-medium text-sm leading-relaxed">
+                      Dernières avancées scientifiques et innovations technologiques.
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-bold text-white tracking-tight">Actualités & Découvertes</h3>
-                  <p className="text-sm opacity-80 leading-relaxed font-medium">
-                    Restez informé des dernières avancées scientifiques et innovations technologiques.
-                  </p>
-                </div>
-                <Button 
-                  onClick={handleFetchNews} 
-                  variant="dark" 
-                  className="w-full bg-white/10 hover:bg-white/20 border-white/10 rounded-2xl py-4 flex items-center justify-center gap-2"
-                >
-                  <Newspaper className="w-5 h-5" /> Explorer l'actu
-                </Button>
-              </Card>
+                  <Button 
+                    onClick={() => handleFetchNews()} 
+                    variant="outline" 
+                    className="bg-white text-black hover:bg-zinc-100 border-none h-16 mt-10 rounded-[1.5rem]"
+                  >
+                    Explorer <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Card>
+              </div>
 
-              <Card className="md:col-span-12 p-8 bg-slate-100 border-none flex flex-col md:flex-row items-center justify-between gap-8">
+              {/* Quote Bar */}
+              <Card className="md:col-span-12 p-10 bg-slate-50 border-none flex flex-col md:flex-row items-center justify-between gap-8 rounded-[2.5rem]">
                 <div className="flex items-center gap-6">
                   <div className="flex -space-x-3">
                     {[1,2,3,4].map(i => (
@@ -310,19 +358,58 @@ const App = () => {
                         key={i}
                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i * 123}`} 
                         alt="user" 
-                        className="w-12 h-12 rounded-full border-4 border-slate-100 bg-white shadow-sm"
+                        className="w-12 h-12 rounded-full border-4 border-white bg-white shadow-sm"
                       />
                     ))}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-800 tracking-tight">+5,000 étudiants</p>
-                    <p className="text-sm text-slate-500 font-medium">utilisent déjà MwalimuMwema quotidiennement.</p>
+                    <p className="font-black text-black tracking-tight">+5,000 étudiants</p>
+                    <p className="text-sm text-black/40 font-medium tracking-tight">Apprennent avec MwalimuMwema.</p>
                   </div>
                 </div>
-                <div className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white/50 px-8">
-                   <p className="text-xs italic text-slate-400 font-medium whitespace-nowrap">"{quote.text}" — {quote.author}</p>
+                <div className="bg-white p-6 rounded-2xl border border-black/5 shadow-sm max-w-md">
+                   <p className="text-xs italic text-black/60 font-medium leading-relaxed">"{quote.text}" — <span className="font-black text-black not-italic ml-1">{quote.author}</span></p>
                 </div>
               </Card>
+
+              {/* History */}
+              {history.length > 0 && (
+                <div className="md:col-span-12 pt-10">
+                  <div className="flex items-center gap-4 mb-8">
+                    <History className="w-5 h-5 text-black" />
+                    <h3 className="text-[10px] font-black text-black uppercase tracking-[0.4em]">Archives Personnelles</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    {history.map((item) => {
+                      const histProgress = Math.round((item.completedChapters.length / item.curriculum.chapters.length) * 100);
+                      return (
+                        <div 
+                          key={item.id} 
+                          className="group bg-white p-8 rounded-[2.5rem] border-2 border-black/5 hover:border-black transition-all cursor-pointer relative"
+                          onClick={() => handleResumeCourse(item)}
+                        >
+                          <div className="flex justify-between items-start mb-6">
+                            <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.2em]">{item.curriculum.level}</span>
+                            <button 
+                              onClick={(e) => handleDeleteHistory(e, item.id)}
+                              className="text-black/10 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <h4 className="font-black text-black text-xl tracking-tighter mb-6">{item.curriculum.subject}</h4>
+                          <div className="w-full h-1 bg-black/5 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-black rounded-full" 
+                              style={{ width: `${histProgress}%` }} 
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -335,10 +422,10 @@ const App = () => {
               className="grid grid-cols-1 md:grid-cols-12 gap-6"
             >
               {/* Stats Card */}
-              <Card className="md:col-span-4 bg-indigo-900 border-none text-white p-8 flex flex-col justify-between min-h-[300px]">
+              <Card className="md:col-span-4 bg-slate-900 border-none text-white p-8 flex flex-col justify-between min-h-[300px]">
                 <div>
                   <h2 className="text-2xl font-bold mb-2">Progression</h2>
-                  <p className="text-indigo-200 text-sm italic opacity-80">"Continue tes efforts pour réussir ton programme !"</p>
+                  <p className="text-slate-400 text-sm italic opacity-80">"Continue tes efforts pour réussir ton programme !"</p>
                 </div>
                 <div className="flex flex-col items-center gap-4 py-8">
                   <div className="relative flex items-center justify-center">
@@ -348,7 +435,7 @@ const App = () => {
                     </svg>
                     <span className="absolute text-3xl font-bold">{progress}%</span>
                   </div>
-                  <p className="text-xs font-bold text-indigo-300 uppercase tracking-widest">{completedChapters.length} chapitres maîtrisés</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{completedChapters.length} chapitres maîtrisés</p>
                 </div>
               </Card>
 
@@ -356,7 +443,7 @@ const App = () => {
               <Card className="md:col-span-8 p-8 flex flex-col">
                 <div className="flex justify-between items-center mb-6">
                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
-                     <BookOpen className="text-indigo-500 w-6 h-6" /> Syllabus du Parcours
+                     <BookOpen className="text-slate-900 w-6 h-6" /> Syllabus du Parcours
                    </h3>
                    <span className="text-xs font-bold bg-slate-100 text-slate-500 px-3 py-1 rounded-full uppercase tracking-widest">
                      {curriculum.chapters.length} Étapes
@@ -375,21 +462,21 @@ const App = () => {
                         className={cn(
                           "group p-5 rounded-2xl border transition-all cursor-pointer flex items-center gap-5",
                           isDone 
-                            ? "bg-indigo-50 border-indigo-100" 
-                            : "bg-white border-slate-100 hover:border-indigo-200 hover:shadow-md"
+                            ? "bg-slate-50 border-slate-200" 
+                            : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-md"
                         )}
                       >
                         <div className={cn(
                           "w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black",
-                          isDone ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600"
+                          isDone ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-900"
                         )}>
                           {isDone ? <CheckCircle className="w-5 h-5" /> : `0${index + 1}`}
                         </div>
                         <div className="flex-1">
-                          <h3 className={cn("font-bold text-sm", isDone ? "text-indigo-800" : "text-slate-800")}>{chapter.title}</h3>
-                          <p className="text-slate-400 text-xs mt-1 line-clamp-1">{chapter.description}</p>
+                          <h3 className={cn("font-black text-2xl tracking-tighter", isDone ? "text-slate-900 opacity-30" : "text-slate-800")}>{chapter.title}</h3>
+                          <p className="text-slate-400 text-xs mt-2 line-clamp-2 leading-relaxed">{chapter.description}</p>
                         </div>
-                        <ChevronRight className={cn("w-4 h-4 transition-colors", isDone ? "text-indigo-300" : "text-slate-200 group-hover:text-indigo-500")} />
+                        <ChevronRight className={cn("w-4 h-4 transition-colors", isDone ? "text-slate-300" : "text-slate-200 group-hover:text-slate-900")} />
                       </motion.div>
                     );
                   })}
@@ -397,18 +484,18 @@ const App = () => {
               </Card>
 
               {/* Promo Card */}
-              <Card className="md:col-span-12 bg-gradient-to-br from-indigo-500 to-purple-600 border-none p-10 text-white relative overflow-hidden flex items-center">
+              <Card className="md:col-span-12 bg-slate-900 border-none p-10 text-white relative overflow-hidden flex items-center">
                 <div className="relative z-10 max-w-2xl">
-                  <h2 className="text-3xl font-bold mb-3 tracking-tight">Prêt pour une expérience complète ?</h2>
-                  <p className="text-indigo-100 text-base opacity-90 leading-relaxed font-medium">
+                  <h2 className="text-3xl font-bold mb-3 tracking-tight text-white">Prêt pour une expérience complète ?</h2>
+                  <p className="text-slate-300 text-base opacity-90 leading-relaxed font-medium">
                     Utilisez MwalimuMwema comme compagnon quotidien. Chaque cours exploré enrichit votre profil et nous permet de vous proposer des leçons de plus en plus pertinentes.
                   </p>
                   <Button variant="secondary" className="mt-6 px-8 py-3 rounded-full uppercase tracking-wider text-xs font-black">
                      Partager mon profil
                   </Button>
                 </div>
-                <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/10 rounded-full blur-[100px]" />
-                <div className="absolute top-10 right-20 opacity-20 pointer-events-none">
+                <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/5 rounded-full blur-[100px]" />
+                <div className="absolute top-10 right-20 opacity-10 pointer-events-none">
                    <Brain className="w-40 h-40 text-white" />
                 </div>
               </Card>
@@ -427,7 +514,7 @@ const App = () => {
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
                 <button 
                   onClick={() => setView('onboarding')}
-                  className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors font-bold text-xs uppercase tracking-widest"
+                  className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors font-bold text-xs uppercase tracking-widest"
                 >
                   <ArrowLeft className="w-4 h-4" /> Retour à l'accueil
                 </button>
@@ -441,7 +528,7 @@ const App = () => {
                       value={newsSearchQuery}
                       onChange={(e) => setNewsSearchQuery(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleFetchNews(newsSearchQuery)}
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium"
+                      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none text-sm font-medium"
                     />
                   </div>
                   <Button onClick={() => handleFetchNews(newsSearchQuery)} className="h-11 px-5 whitespace-nowrap">
@@ -449,7 +536,7 @@ const App = () => {
                   </Button>
                 </div>
 
-                <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100">
+                <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-900 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-200">
                    <Newspaper className="w-4 h-4" /> Actualités Scientifiques
                 </div>
               </div>
@@ -472,7 +559,7 @@ const App = () => {
                         domainIdx % 3 === 0 ? "md:col-span-8" : "md:col-span-4"
                       )}>
                         <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
-                          <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
+                          <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-900">
                             <Icon className="w-6 h-6" />
                           </div>
                           <h2 className="text-xl font-bold text-slate-800 tracking-tight">{domain.domain}</h2>
@@ -481,30 +568,30 @@ const App = () => {
                           {domain.items.map((item, itemIdx) => (
                             <div key={itemIdx} className="space-y-4">
                               <div className="flex justify-between items-start gap-4">
-                                <h3 className="text-lg font-bold text-indigo-900 leading-tight">{item.title}</h3>
+                                <h3 className="text-lg font-bold text-slate-900 leading-tight">{item.title}</h3>
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{item.date}</span>
                               </div>
                               <p className="text-sm font-medium text-slate-500 leading-relaxed italic">{item.summary}</p>
                               <p className="text-sm text-slate-600 leading-relaxed">{item.description}</p>
-                              <div className="flex flex-wrap gap-2 pt-1 border-l-2 border-indigo-100 pl-4 ml-1">
-                                <p className="w-full text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Ressources & Étude</p>
+                              <div className="flex flex-wrap gap-2 pt-1 border-l-2 border-slate-200 pl-4 ml-1">
+                                <p className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ressources & Étude</p>
                                 {item.resources.map((res, resIdx) => (
                                   <a 
                                     key={resIdx} 
                                     href={res.url} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl hover:bg-indigo-50 hover:border-indigo-100 transition-all group"
+                                    className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl hover:bg-slate-200 hover:border-slate-300 transition-all group"
                                   >
-                                    {res.type === 'video' && <Play className="w-3 h-3 text-red-500 fill-red-500" />}
-                                    {res.type === 'book' && <BookOpen className="w-3 h-3 text-amber-600" />}
+                                    {res.type === 'video' && <Play className="w-3 h-3 text-red-600 fill-red-600" />}
+                                    {res.type === 'book' && <BookOpen className="w-3 h-3 text-slate-600" />}
                                     {res.type === 'article' && <FileText className="w-3 h-3 text-slate-400" />}
-                                    <span className="text-[10px] font-bold text-slate-600 group-hover:text-indigo-700">{res.title}</span>
+                                    <span className="text-[10px] font-bold text-slate-600 group-hover:text-slate-900">{res.title}</span>
                                   </a>
                                 ))}
                               </div>
                               <div className="pt-2">
-                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 mt-2 px-2 py-1 rounded-md border border-indigo-100 block w-fit">
+                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-50 mt-2 px-2 py-1 rounded-md border border-slate-200 block w-fit">
                                   Impact: {item.impact}
                                 </span>
                               </div>
@@ -530,7 +617,7 @@ const App = () => {
               <div className="md:col-span-12 mb-2">
                 <button 
                   onClick={() => setView('curriculum')}
-                  className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors font-bold text-xs uppercase tracking-widest"
+                  className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors font-bold text-xs uppercase tracking-widest"
                 >
                   <ArrowLeft className="w-4 h-4" /> Retour au programme
                 </button>
@@ -540,23 +627,23 @@ const App = () => {
               <Card className="md:col-span-8 p-10 flex flex-col gap-6 h-fit">
                 <div className="space-y-4 pb-6 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ring-1 ring-indigo-100">Lecture</span>
+                    <span className="bg-slate-100 text-slate-900 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ring-1 ring-slate-200">Lecture</span>
                     <span className="text-slate-300 mx-1">|</span>
                     <span className="text-slate-400 font-bold text-xs italic tracking-tight">{curriculum?.subject}</span>
                   </div>
-                  <h1 className="text-4xl font-bold text-indigo-900 leading-[1.1] tracking-tight">
+                  <h1 className="text-4xl font-bold text-slate-900 leading-[1.1] tracking-tight">
                     {activeChapter.title}
                   </h1>
                 </div>
 
-                <div className="prose prose-slate max-w-none prose-indigo leading-relaxed">
+                <div className="prose prose-slate max-w-none prose-slate leading-relaxed">
                   <ReactMarkdown>{activeChapter.content || ""}</ReactMarkdown>
                 </div>
 
                 <div className="mt-10 pt-8 border-t border-slate-100 flex justify-center">
                   <Button 
                      onClick={handleFinishChapter} 
-                     className="h-16 px-12 text-lg rounded-[1.5rem] shadow-xl shadow-indigo-100"
+                     className="h-16 px-12 text-lg rounded-[1.5rem] shadow-xl shadow-slate-100"
                   >
                      Tester mes connaissances <ChevronRight className="w-6 h-6" />
                   </Button>
@@ -567,7 +654,7 @@ const App = () => {
               <div className="md:col-span-4 space-y-6">
                 <Card className="p-6">
                   <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest">
-                    <Youtube className="text-red-500 w-5 h-5" /> Vidéos suggérées
+                    <Youtube className="text-red-600 w-5 h-5" /> Vidéos suggérées
                   </h3>
                   <div className="space-y-4">
                     {activeChapter.youtubeLinks?.map((video, i) => (
@@ -578,19 +665,19 @@ const App = () => {
                         rel="noopener noreferrer"
                         className="group block space-y-3"
                       >
-                        <div className="aspect-video bg-slate-100 rounded-2xl relative overflow-hidden border border-slate-100 hover:border-indigo-200 transition-all">
+                        <div className="aspect-video bg-slate-100 rounded-2xl relative overflow-hidden border border-slate-100 hover:border-slate-300 transition-all">
                           <img 
                             src={`https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=400&q=80&sep=${i}`} 
                             alt="preview" 
                             className="w-full h-full object-cover opacity-20 transition-transform group-hover:scale-110" 
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center transform group-hover:scale-110 transition-transform shadow-lg shadow-indigo-200">
+                            <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center transform group-hover:scale-110 transition-transform shadow-lg shadow-red-200">
                                <Play className="text-white fill-white w-5 h-5 ml-0.5" />
                             </div>
                           </div>
                         </div>
-                        <p className="text-xs font-bold text-slate-600 group-hover:text-indigo-600 transition-colors line-clamp-2 px-1">
+                        <p className="text-xs font-bold text-slate-600 group-hover:text-slate-900 transition-colors line-clamp-2 px-1">
                           {video.title}
                         </p>
                       </a>
@@ -599,9 +686,9 @@ const App = () => {
                 </Card>
 
                 <Card className="p-8 bg-slate-900 border-none text-white text-center flex flex-col items-center justify-center gap-4 h-[240px]">
-                   <Award className="text-indigo-400 w-12 h-12" />
+                   <Award className="text-slate-400 w-12 h-12" />
                    <h4 className="font-bold">Mémorisation active</h4>
-                   <p className="text-xs text-indigo-200 opacity-60 leading-relaxed font-medium">Prendre des notes pendant la lecture augmente significativement votre taux de réussite à l'évaluation.</p>
+                   <p className="text-xs text-slate-300 opacity-60 leading-relaxed font-medium">Prendre des notes pendant la lecture augmente significativement votre taux de réussite à l'évaluation.</p>
                 </Card>
               </div>
             </motion.div>
@@ -616,8 +703,8 @@ const App = () => {
               className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6"
             >
               <div className="md:col-span-12 text-center mb-4">
-                <div className="bg-indigo-50 text-indigo-600 px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest inline-block border border-indigo-100 mb-4">Évaluation Finale</div>
-                <h1 className="text-4xl font-bold text-indigo-900 tracking-tight">Validez vos acquis</h1>
+                <div className="bg-slate-100 text-slate-900 px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest inline-block border border-slate-200 mb-4">Évaluation Finale</div>
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Validez vos acquis</h1>
                 <p className="text-slate-400 mt-2 font-medium">Répondez à ces questions pour finaliser votre maîtrise du chapitre.</p>
               </div>
 
@@ -627,7 +714,7 @@ const App = () => {
                     {activeChapter.quiz.map((q, qIndex) => (
                       <Card key={qIndex} className="p-8 space-y-6 bg-white border-slate-100">
                         <div className="flex gap-4">
-                           <span className="text-indigo-400 font-black text-3xl">0{qIndex + 1}</span>
+                           <span className="text-slate-900 font-black text-3xl">0{qIndex + 1}</span>
                            <h3 className="text-lg font-bold text-slate-800 pt-1.5 leading-snug">{q.question}</h3>
                         </div>
                         <div className="grid grid-cols-1 gap-3 sm:pl-12">
@@ -644,7 +731,7 @@ const App = () => {
                                 className={cn(
                                   "text-left p-4 rounded-2xl border transition-all text-xs font-bold uppercase tracking-wider",
                                   isActive 
-                                    ? "border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-100" 
+                                    ? "border-slate-900 bg-slate-900 text-white ring-4 ring-slate-100" 
                                     : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"
                                 )}
                               >
@@ -658,10 +745,10 @@ const App = () => {
                   </div>
 
                   <div className="md:col-span-4 sticky top-28 h-fit">
-                    <Card className="p-6 bg-indigo-50 border-indigo-100 shadow-none space-y-6">
+                    <Card className="p-6 bg-slate-100 border-slate-200 shadow-none space-y-6">
                        <div className="space-y-2">
-                         <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Résumé du Quiz</h4>
-                         <p className="text-xs text-indigo-600 font-medium leading-relaxed">
+                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Résumé du Quiz</h4>
+                         <p className="text-xs text-slate-600 font-medium leading-relaxed">
                             Vous devez répondre à toutes les questions ({activeChapter.quiz.length}) pour voir vos résultats.
                          </p>
                        </div>
@@ -682,16 +769,16 @@ const App = () => {
                   className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8"
                 >
                   <Card className="p-12 text-center bg-slate-900 border-none text-white flex flex-col items-center justify-center gap-6">
-                    <div className="bg-indigo-500/20 w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-inner ring-1 ring-white/10">
-                       <Award className="text-indigo-400 w-12 h-12" />
+                    <div className="bg-white/10 w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-inner ring-1 ring-white/10">
+                       <Award className="text-slate-400 w-12 h-12" />
                     </div>
                     <div className="space-y-1">
                        <h2 className="text-4xl font-bold">Score: {quizScore} / {activeChapter.quiz.length}</h2>
-                       <p className="text-indigo-300 font-bold uppercase text-[10px] tracking-[0.2em]">{quizScore >= activeChapter.quiz.length / 2 ? "Félicitations !" : "Encore un petit effort"}</p>
+                       <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em]">{quizScore >= activeChapter.quiz.length / 2 ? "Félicitations !" : "Encore un petit effort"}</p>
                     </div>
                     <div className="w-full h-2 bg-white/10 rounded-full max-w-[200px]">
                        <div 
-                         className="h-full bg-indigo-500 transition-all duration-1000 rounded-full" 
+                         className="h-full bg-white transition-all duration-1000 rounded-full" 
                          style={{ width: `${(quizScore / activeChapter.quiz.length) * 100}%` }} 
                        />
                     </div>
@@ -706,23 +793,23 @@ const App = () => {
                   </Card>
 
                   <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-widest px-1">Correction détaillée</h3>
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest px-1">Correction détaillée</h3>
                     <div className="space-y-3 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
                       {activeChapter.quiz.map((q, i) => (
                         <div key={i} className="p-5 bg-white border border-slate-100 rounded-2xl space-y-3 transition-shadow hover:shadow-sm">
                           <div className="flex items-start gap-4">
                               {quizAnswers[i] === q.correctAnswer ? (
-                                <div className="w-6 h-6 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <div className="w-6 h-6 rounded-lg bg-slate-900 flex items-center justify-center flex-shrink-0 mt-0.5">
                                    <CheckCircle className="text-white w-4 h-4" />
                                 </div>
                               ) : (
-                                <div className="w-6 h-6 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <div className="w-6 h-6 rounded-lg bg-slate-300 flex items-center justify-center flex-shrink-0 mt-0.5">
                                    <div className="text-white font-black text-[10px]">X</div>
                                 </div>
                               )}
                               <div className="space-y-1.5 flex-1">
                                 <p className="font-bold text-xs text-slate-800 leading-tight">{q.question}</p>
-                                <p className="text-indigo-600 text-[10px] font-black uppercase tracking-wider bg-indigo-50 px-2 py-0.5 rounded-full inline-block">Réponse: {q.options[q.correctAnswer]}</p>
+                                <p className="text-slate-900 text-[10px] font-black uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-full inline-block">Réponse: {q.options[q.correctAnswer]}</p>
                                 <p className="text-slate-400 text-[10px] italic leading-relaxed pt-1">{q.explanation}</p>
                               </div>
                           </div>
@@ -742,11 +829,11 @@ const App = () => {
       {loading && (
         <div className="fixed inset-0 bg-slate-50/90 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-8 text-center">
             <div className="relative mb-8">
-              <div className="w-24 h-24 border-2 border-indigo-600/10 border-t-indigo-600 rounded-[2rem] animate-spin" />
-              <Brain className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 w-8 h-8" />
+              <div className="w-24 h-24 border-2 border-slate-900/10 border-t-slate-900 rounded-[2rem] animate-spin" />
+              <Brain className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-900 w-8 h-8" />
             </div>
             <div className="space-y-2">
-              <p className="text-2xl font-bold text-indigo-900 tracking-tight">Intelligence Artificielle en action</p>
+              <p className="text-2xl font-bold text-slate-900 tracking-tight">Intelligence Artificielle en action</p>
               <p className="text-slate-400 font-medium max-w-sm">MwalimuMwema structure votre programme et rédige vos leçons personnalisées...</p>
             </div>
         </div>

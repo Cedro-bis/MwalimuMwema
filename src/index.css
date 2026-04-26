@@ -1,69 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
   body {
-    @apply antialiased bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900;
+    @apply antialiased bg-white text-black selection:bg-slate-100 selection:text-black;
   }
 }
 
-/* Bento Grid Specific Enhancements */
+/* Minimalist Enhancements */
 .bento-shadow {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
 }
 
-.prose h1 { @apply text-3xl font-bold mb-6 text-indigo-900 tracking-tight; }
-.prose h2 { @apply text-2xl font-bold mt-10 mb-4 text-slate-800; }
-.prose h3 { @apply text-xl font-bold mt-8 mb-3 text-slate-800; }
-.prose p { @apply mb-4 text-slate-600 leading-relaxed text-sm; }
-.prose ul { @apply list-disc pl-6 mb-4 space-y-2 text-sm text-slate-600; }
-.prose code { @apply bg-slate-100 px-1.5 py-0.5 rounded-lg text-indigo-600 font-mono text-xs; }
-.prose blockquote { @apply border-l-4 border-indigo-200 pl-4 italic text-slate-500 my-6 text-sm; }
+.prose h1 { @apply text-4xl font-extrabold mb-8 text-black tracking-tighter; }
+.prose h2 { @apply text-2xl font-bold mt-12 mb-5 text-black tracking-tight; }
+.prose h3 { @apply text-xl font-bold mt-10 mb-4 text-black tracking-tight; }
+.prose p { @apply mb-6 text-black leading-relaxed font-normal; }
+.prose ul { @apply list-disc pl-8 mb-6 space-y-3 text-black; }
+.prose code { @apply bg-slate-50 px-2 py-1 rounded text-black font-mono text-sm border border-slate-100; }
+.prose blockquote { @apply border-l-2 border-black pl-6 italic text-slate-600 my-8; }
 
-/* Custom Scrollbar for Bento Cards */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300;
-}
-
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-}
-
-@layer base {
-  body {
-    @apply antialiased bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900;
-  }
-}
-
-/* Bento Grid Specific Enhancements */
-.bento-shadow {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
-}
-
-.prose h1 { @apply text-3xl font-bold mb-6 text-indigo-900 tracking-tight; }
-.prose h2 { @apply text-2xl font-bold mt-10 mb-4 text-slate-800; }
-.prose h3 { @apply text-xl font-bold mt-8 mb-3 text-slate-800; }
-.prose p { @apply mb-4 text-slate-600 leading-relaxed text-sm; }
-.prose ul { @apply list-disc pl-6 mb-4 space-y-2 text-sm text-slate-600; }
-.prose code { @apply bg-slate-100 px-1.5 py-0.5 rounded-lg text-indigo-600 font-mono text-xs; }
-.prose blockquote { @apply border-l-4 border-indigo-200 pl-4 italic text-slate-500 my-6 text-sm; }
-
-/* Custom Scrollbar for Bento Cards */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300;
+  @apply bg-slate-100 rounded-full hover:bg-slate-200;
 }

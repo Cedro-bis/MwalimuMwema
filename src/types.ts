@@ -28,6 +28,13 @@ export interface Curriculum {
   chapters: Chapter[];
 }
 
+export interface HistoryItem {
+  id: string;
+  curriculum: Curriculum;
+  completedChapters: string[];
+  lastUpdated: number;
+}
+
 export interface ScienceNews {
   domain: string;
   items: {
