@@ -228,22 +228,22 @@ const App = () => {
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
       
       {/* --- Header --- */}
-      <header className="fixed top-0 left-0 right-0 h-24 bg-white/90 backdrop-blur-xl z-50 px-12 flex items-center justify-between border-b border-black">
+      <header className="fixed top-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl z-50 px-10 flex items-center justify-between border-b border-black">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('onboarding')}>
-          <h1 className="text-3xl font-black text-black tracking-tighter">
+          <h1 className="text-2xl font-black text-black tracking-tighter">
             MwalimuMwema
           </h1>
         </div>
         
         {curriculum && view !== 'onboarding' && (
           <div className="flex items-center gap-6">
-            <div className="bg-white border border-black px-6 py-2.5 rounded-full text-sm font-bold text-black hidden md:flex items-center gap-3">
-              <span className="opacity-40 uppercase tracking-widest text-[10px]">Niveau</span>
+            <div className="bg-white border border-black px-5 py-2 rounded-full text-xs font-bold text-black hidden md:flex items-center gap-3">
+              <span className="opacity-40 uppercase tracking-widest text-[9px]">Niveau</span>
               <span>{curriculum.level}</span>
               <span className="w-1 h-1 rounded-full bg-black/20" />
               <span>{curriculum.subject}</span>
             </div>
-            <div className="w-12 h-12 bg-black rounded-full border border-black flex items-center justify-center overflow-hidden">
+            <div className="w-10 h-10 bg-black rounded-full border border-black flex items-center justify-center overflow-hidden">
                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${curriculum.subject}`} alt="avatar" />
             </div>
           </div>
@@ -262,36 +262,35 @@ const App = () => {
               exit={{ opacity: 0, scale: 0.98 }}
               className="grid grid-cols-1 md:grid-cols-12 gap-10"
             >
-              <div className="md:col-span-12 py-10 text-center flex flex-col items-center">
+              <div className="md:col-span-12 py-6 text-center flex flex-col items-center">
                 <motion.div 
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="mb-10 text-black"
+                  className="mb-8 text-black"
                 >
-                  <Brain className="w-20 h-20" />
+                  <Brain className="w-16 h-16" />
                 </motion.div>
-                <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 text-black leading-[0.9]">
-                   Apprenez <br />sans limites.
+                <h1 className="text-[30px] font-black tracking-tight mb-6 text-black leading-[0.95] uppercase">
+                   Apprendre <br />sans limites.
                 </h1>
-                <p className="text-xl text-black/60 max-w-2xl mx-auto font-medium leading-relaxed">
-                   MwalimuMwema crée pour vous un parcours d'apprentissage complet sur n'importe quel sujet, 
-                   adapté précisément à votre niveau académique.
+                <p className="text-base text-black/60 max-w-xl mx-auto font-medium leading-relaxed">
+                   Définissez vos objectifs et laissez MwalimuMwema concevoir votre programme sur mesure en quelques secondes.
                 </p>
               </div>
 
-              <Card className="md:col-span-8 p-12 space-y-12">
-                <div className="space-y-10">
-                  <div className="space-y-6">
-                    <label className="block text-[10px] font-black text-black uppercase tracking-[0.3em]">
+              <Card className="md:col-span-8 p-10 space-y-10">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="block text-[9px] font-black text-black uppercase tracking-[0.3em]">
                       01 / Votre Niveau
                     </label>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                       {['Primaire', 'Collège', 'Lycée', 'Université'].map((l) => (
                         <button
                           key={l}
                           onClick={() => setLevel(l as Level)}
                           className={cn(
-                            "px-6 py-5 rounded-[1.5rem] border-2 transition-all font-bold text-xs uppercase tracking-widest",
+                            "px-5 py-4 rounded-2xl border-2 transition-all text-[11px] uppercase tracking-widest font-bold",
                             level === l 
                               ? "border-black bg-black text-white" 
                               : "border-black/5 bg-white text-black/40 hover:border-black/20"
@@ -303,18 +302,18 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <label className="block text-[10px] font-black text-black uppercase tracking-[0.3em]">
+                  <div className="space-y-4">
+                    <label className="block text-[9px] font-black text-black uppercase tracking-[0.3em]">
                       02 / Le Sujet
                     </label>
                     <div className="relative">
-                      <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-black/20" />
+                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-black/20" />
                       <input 
                         type="text"
-                        placeholder="Ex: Chimie organique, IA..."
+                        placeholder="Ex: Analyse de données, Géopolitique..."
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
-                        className="w-full pl-16 pr-6 py-6 bg-white border-2 border-black rounded-[2rem] focus:ring-4 focus:ring-black/5 transition-all outline-none text-xl font-bold placeholder:text-black/10"
+                        className="w-full pl-14 pr-5 py-5 bg-white border-2 border-black rounded-[1.5rem] focus:ring-4 focus:ring-black/5 transition-all outline-none text-lg font-bold placeholder:text-black/10"
                       />
                     </div>
                   </div>
@@ -323,28 +322,28 @@ const App = () => {
                 <Button 
                   onClick={handleStartCourse} 
                   variant="primary"
-                  className="w-full h-20 text-xl"
+                  className="w-full h-16 text-lg"
                   loading={loading}
                 >
-                  Générer le parcours <ArrowRight className="w-6 h-6 ml-2" />
+                  Générer mon cours <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Card>
 
-              <div className="md:col-span-4 flex flex-col gap-10">
-                <Card className="bg-black text-white p-10 flex flex-col justify-between h-full border-none">
-                  <div className="space-y-6">
-                    <Newspaper className="w-10 h-10" />
-                    <h3 className="text-3xl font-black tracking-tight leading-none">Actualités.</h3>
-                    <p className="text-white/60 font-medium text-sm leading-relaxed">
-                      Dernières avancées scientifiques et innovations technologiques.
+              <div className="md:col-span-4 flex flex-col gap-8">
+                <Card className="bg-black text-white p-8 flex flex-col justify-between h-full border-none rounded-[2rem]">
+                  <div className="space-y-4">
+                    <Newspaper className="w-8 h-8" />
+                    <h3 className="text-2xl font-black tracking-tight leading-none">Actualités et Veille.</h3>
+                    <p className="text-white/60 font-medium text-xs leading-relaxed">
+                      Restez informé des dernières découvertes scientifiques et innovations.
                     </p>
                   </div>
                   <Button 
                     onClick={() => handleFetchNews()} 
                     variant="outline" 
-                    className="bg-white text-black hover:bg-zinc-100 border-none h-16 mt-10 rounded-[1.5rem]"
+                    className="bg-white text-black hover:bg-zinc-100 border-none h-14 mt-8 rounded-2xl"
                   >
-                    Explorer <ArrowRight className="w-5 h-5" />
+                    Découvrir <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Card>
               </div>
@@ -430,8 +429,8 @@ const App = () => {
                 <div className="flex flex-col items-center gap-4 py-8">
                   <div className="relative flex items-center justify-center">
                     <svg className="w-40 h-40 transform -rotate-90">
-                      <circle cx="80" cy="80" r="70" stroke="rgba(255,255,255,0.1)" stroke-width="12" fill="transparent" />
-                      <circle cx="80" cy="80" r="70" stroke="white" stroke-width="12" fill="transparent" stroke-dasharray="439.8" stroke-dashoffset={439.8 - (439.8 * progress / 100)} stroke-linecap="round" className="transition-all duration-1000" />
+                      <circle cx="80" cy="80" r="70" stroke="rgba(255,255,255,0.1)" strokeWidth="12" fill="transparent" />
+                      <circle cx="80" cy="80" r="70" stroke="white" strokeWidth="12" fill="transparent" strokeDasharray="439.8" strokeDashoffset={439.8 - (439.8 * progress / 100)} strokeLinecap="round" className="transition-all duration-1000" />
                     </svg>
                     <span className="absolute text-3xl font-bold">{progress}%</span>
                   </div>
@@ -473,8 +472,8 @@ const App = () => {
                           {isDone ? <CheckCircle className="w-5 h-5" /> : `0${index + 1}`}
                         </div>
                         <div className="flex-1">
-                          <h3 className={cn("font-black text-2xl tracking-tighter", isDone ? "text-slate-900 opacity-30" : "text-slate-800")}>{chapter.title}</h3>
-                          <p className="text-slate-400 text-xs mt-2 line-clamp-2 leading-relaxed">{chapter.description}</p>
+                          <h3 className={cn("text-lg tracking-tight", isDone ? "text-slate-900 opacity-20" : "text-black font-semibold")}>{chapter.title}</h3>
+                          <p className="text-slate-400 text-[11px] mt-1 line-clamp-2 leading-relaxed font-normal">{chapter.description}</p>
                         </div>
                         <ChevronRight className={cn("w-4 h-4 transition-colors", isDone ? "text-slate-300" : "text-slate-200 group-hover:text-slate-900")} />
                       </motion.div>
@@ -626,26 +625,58 @@ const App = () => {
               {/* Main Content Card */}
               <Card className="md:col-span-8 p-10 flex flex-col gap-6 h-fit">
                 <div className="space-y-4 pb-6 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <span className="bg-slate-100 text-slate-900 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ring-1 ring-slate-200">Lecture</span>
-                    <span className="text-slate-300 mx-1">|</span>
-                    <span className="text-slate-400 font-bold text-xs italic tracking-tight">{curriculum?.subject}</span>
-                  </div>
-                  <h1 className="text-4xl font-bold text-slate-900 leading-[1.1] tracking-tight">
-                    {activeChapter.title}
-                  </h1>
+                    <div className="flex items-center gap-3">
+                      <span className="bg-black text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Leçon</span>
+                      <span className="text-black/10 mx-1">|</span>
+                      <span className="text-black/40 font-medium text-[11px] tracking-tight">{curriculum?.subject}</span>
+                    </div>
+                    <h1 className="text-[24px] font-black text-black tracking-tight leading-tight">
+                      {activeChapter.title}
+                    </h1>
+                    {activeChapter.description && (
+                      <p className="text-[14px] text-black/40 font-medium leading-relaxed">
+                        {activeChapter.description}
+                      </p>
+                    )}
                 </div>
 
-                <div className="prose prose-slate max-w-none prose-slate leading-relaxed">
+                <div className="prose prose-slate max-w-none font-normal text-[18px] leading-relaxed">
                   <ReactMarkdown>{activeChapter.content || ""}</ReactMarkdown>
                 </div>
 
-                <div className="mt-10 pt-8 border-t border-slate-100 flex justify-center">
+                <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col items-center gap-6">
+                  <div className="flex w-full justify-between gap-4">
+                    {curriculum && (() => {
+                      const currentIndex = curriculum.chapters.findIndex(c => c.id === activeChapter.id);
+                      const prevChapter = currentIndex > 0 ? curriculum.chapters[currentIndex - 1] : null;
+                      const nextChapter = currentIndex < curriculum.chapters.length - 1 ? curriculum.chapters[currentIndex + 1] : null;
+
+                      return (
+                        <>
+                          <button 
+                            onClick={() => prevChapter && handleSelectChapter(prevChapter)}
+                            disabled={!prevChapter}
+                            className="flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-black text-sm font-bold disabled:opacity-20 transition-all hover:bg-slate-50"
+                          >
+                            <ArrowLeft className="w-4 h-4" /> Précédent
+                          </button>
+                          <button 
+                            onClick={() => nextChapter && handleSelectChapter(nextChapter)}
+                            disabled={!nextChapter}
+                            className="flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-black text-sm font-bold disabled:opacity-20 transition-all hover:bg-slate-50"
+                          >
+                            Suivant <ArrowRight className="w-4 h-4" />
+                          </button>
+                        </>
+                      );
+                    })()}
+                  </div>
+
                   <Button 
                      onClick={handleFinishChapter} 
-                     className="h-16 px-12 text-lg rounded-[1.5rem] shadow-xl shadow-slate-100"
+                     className="h-14 px-10 text-base rounded-2xl shadow-xl shadow-slate-100 w-full"
                   >
-                     Tester mes connaissances <ChevronRight className="w-6 h-6" />
+                     Débuter l'évaluation <ChevronRight className="w-5 h-5" />
                   </Button>
                 </div>
               </Card>
@@ -754,10 +785,10 @@ const App = () => {
                        </div>
                        <Button 
                         onClick={() => handleQuizSubmit(quizAnswers)} 
-                        className="w-full h-14"
+                        className="w-full h-14 text-sm"
                         disabled={quizAnswers.length < activeChapter.quiz.length}
                       >
-                        Soumettre ma réponse
+                        Finaliser le module
                       </Button>
                     </Card>
                   </div>
@@ -782,14 +813,14 @@ const App = () => {
                          style={{ width: `${(quizScore / activeChapter.quiz.length) * 100}%` }} 
                        />
                     </div>
-                    <div className="flex gap-3 w-full max-w-sm mt-4">
-                      <Button variant="secondary" onClick={() => setView('onboarding')} className="flex-1 rounded-2xl h-12">
-                        Nouvelle matière
-                      </Button>
-                      <Button onClick={() => setView('curriculum')} className="flex-1 rounded-2xl h-12">
-                        Continuer
-                      </Button>
-                    </div>
+                          <div className="flex gap-3 w-full max-w-sm mt-4">
+                            <Button variant="secondary" onClick={() => setView('onboarding')} className="flex-1 rounded-2xl h-12 text-sm">
+                              Nouveau sujet
+                            </Button>
+                            <Button onClick={() => setView('curriculum')} className="flex-1 rounded-2xl h-12 text-sm">
+                              Continuer
+                            </Button>
+                          </div>
                   </Card>
 
                   <div className="space-y-4">
