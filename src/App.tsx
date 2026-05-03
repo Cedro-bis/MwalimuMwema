@@ -623,25 +623,17 @@ const App = () => {
               </div>
 
               {/* Main Content Card */}
-              <Card className="md:col-span-8 p-10 flex flex-col gap-6 h-fit">
-                <div className="space-y-4 pb-6 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <span className="bg-black text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Leçon</span>
-                      <span className="text-black/10 mx-1">|</span>
-                      <span className="text-black/40 font-medium text-[11px] tracking-tight">{curriculum?.subject}</span>
-                    </div>
-                    <h1 className="text-[24px] font-black text-black tracking-tight leading-tight">
+              <Card className="md:col-span-8 p-12 flex flex-col gap-10 h-fit border-none shadow-none">
+                <div className="space-y-4">
+                    <h1 className="text-[36px] font-black text-black tracking-tighter leading-[1.1]">
                       {activeChapter.title}
                     </h1>
-                    {activeChapter.description && (
-                      <p className="text-[14px] text-black/40 font-medium leading-relaxed">
-                        {activeChapter.description}
-                      </p>
-                    )}
                 </div>
 
-                <div className="prose prose-slate max-w-none font-normal text-[18px] leading-relaxed">
-                  <ReactMarkdown>{activeChapter.content || ""}</ReactMarkdown>
+                <div className="prose prose-slate max-w-none font-normal text-[18px] leading-relaxed text-black/80">
+                  <ReactMarkdown>
+                    {activeChapter.content?.replace(/^Chapitre\s*:\s*.*?\n/i, '').trim() || ""}
+                  </ReactMarkdown>
                 </div>
 
                 <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col items-center gap-6">
@@ -858,14 +850,10 @@ const App = () => {
 
       {/* Global Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-slate-50/90 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-8 text-center">
-            <div className="relative mb-8">
-              <div className="w-24 h-24 border-2 border-slate-900/10 border-t-slate-900 rounded-[2rem] animate-spin" />
-              <Brain className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-900 w-8 h-8" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-2xl font-bold text-slate-900 tracking-tight">Intelligence Artificielle en action</p>
-              <p className="text-slate-400 font-medium max-w-sm">MwalimuMwema structure votre programme et rédige vos leçons personnalisées...</p>
+        <div className="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center p-8">
+            <div className="relative">
+              <div className="w-20 h-20 border-2 border-black/5 border-t-black rounded-full animate-spin" />
+              <Brain className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black w-8 h-8" />
             </div>
         </div>
       )}

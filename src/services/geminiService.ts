@@ -52,10 +52,16 @@ export const GeminiService = {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Génère le contenu détaillé pour le chapitre "${chapterTitle}" dans la matière "${subject}" au niveau "${level}".
-      Inclus:
-      1. Un cours approfondi au format Markdown.
-      2. 3 suggestions de titres de vidéos YouTube pertinentes pour ce cours.
-      3. Un quiz de 3 questions à choix multiples (QCM) pour évaluer les connaissances.`,
+      CONTRÔLE DE FORMAT CRITIQUE:
+      1. Le "content" doit être un cours approfondi au format Markdown pur. 
+      2. INCLURE SYSTÉMATIQUEMENT des exemples concrets, des cas d'utilisation réels et des blocs de code (avec syntax highlighting) si le sujet est technique ou scientifique.
+      3. NE PAS inclure le titre du chapitre au début du contenu. Commence directement par l'introduction.
+      4. Utilise des titres de section clairs (ex: ## 1. Introduction).
+      5. Assure-toi qu'il y a des doubles retours à la ligne entre chaque paragraphe et chaque titre pour un rendu optimal.
+      6. Ne mets pas tout le texte en gras. Réserve le gras pour les termes techniques importants uniquement.
+      Inclus aussi:
+      - 3 suggestions de titres de vidéos YouTube pertinentes.
+      - Un quiz de 3 questions QCM.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
