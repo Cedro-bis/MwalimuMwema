@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type Level = 'Primaire' | 'Collège' | 'Lycée' | 'Université';
+export type Level = 'Primaire' | 'Collège' | 'Lycée' | 'Université' | 'Master' | 'Études approfondies';
 
 export interface QuizQuestion {
   question: string;

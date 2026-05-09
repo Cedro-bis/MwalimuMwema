@@ -14,7 +14,6 @@ import {
   CheckCircle, 
   Play, 
   Award, 
-  Brain,
   ArrowLeft,
   Loader2,
   Youtube,
@@ -263,13 +262,6 @@ const App = () => {
               className="grid grid-cols-1 md:grid-cols-12 gap-10"
             >
               <div className="md:col-span-12 py-6 text-center flex flex-col items-center">
-                <motion.div 
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="mb-8 text-black"
-                >
-                  <Brain className="w-16 h-16" />
-                </motion.div>
                 <h1 className="text-[30px] font-black tracking-tight mb-6 text-black leading-[0.95] uppercase">
                    Apprendre <br />sans limites.
                 </h1>
@@ -284,8 +276,8 @@ const App = () => {
                     <label className="block text-[9px] font-black text-black uppercase tracking-[0.3em]">
                       01 / Votre Niveau
                     </label>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                      {['Primaire', 'Collège', 'Lycée', 'Université'].map((l) => (
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                      {['Primaire', 'Collège', 'Lycée', 'Université', 'Master', 'Études approfondies'].map((l) => (
                         <button
                           key={l}
                           onClick={() => setLevel(l as Level)}
@@ -494,9 +486,6 @@ const App = () => {
                   </Button>
                 </div>
                 <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/5 rounded-full blur-[100px]" />
-                <div className="absolute top-10 right-20 opacity-10 pointer-events-none">
-                   <Brain className="w-40 h-40 text-white" />
-                </div>
               </Card>
             </motion.div>
           )}
@@ -853,7 +842,6 @@ const App = () => {
         <div className="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center p-8">
             <div className="relative">
               <div className="w-20 h-20 border-2 border-black/5 border-t-black rounded-full animate-spin" />
-              <Brain className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black w-8 h-8" />
             </div>
         </div>
       )}
