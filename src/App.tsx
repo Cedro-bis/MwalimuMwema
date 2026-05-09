@@ -620,7 +620,9 @@ const App = () => {
                 </div>
 
                 <div className="prose prose-slate max-w-none font-normal text-[18px] leading-relaxed text-black/80">
-                  <ReactMarkdown>
+                  <ReactMarkdown components={{
+                    a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />
+                  }}>
                     {activeChapter.content?.replace(/^Chapitre\s*:\s*.*?\n/i, '').trim() || ""}
                   </ReactMarkdown>
                 </div>
