@@ -137,6 +137,27 @@ export const GeminiService = {
   },
 
   /**
+   * Answers a user question about a specific lesson content.
+   */
+  async askAi(level: string, subject: string, chapterTitle: string, lessonContent: string, question: string): Promise<string> {
+    const text = await callGeminiWithRetry({
+      contents: `Tu es MwalimuMwema, un tuteur IA expert. Un étudiant de niveau "${level}" suit un cours sur "${subject}".
+      Il étudie actuellement le chapitre : "${chapterTitle}".
+      
+      Voici le contenu du cours qu'il est en tant que lire :
+      ---
+      ${lessonContent}
+      ---
+      
+      L'étudiant pose la question suivante : "${question}"
+      
+      Réponds de manière pédagogique, claire et concise en te basant sur le contenu du cours et tes connaissances approfondies. 
+      Utilise le format Markdown pour ta réponse si nécessaire.`,
+    });
+    return text || "Désolé, je n'ai pas pu générer de réponse.";
+  },
+
+  /**
    * Generates the latest scientific news across multiple domains or a specific one.
    */
   async generateScienceNews(specificDomain?: string): Promise<ScienceNews[]> {

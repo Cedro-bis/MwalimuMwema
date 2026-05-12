@@ -120,7 +120,7 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
 
   if (step === 'success') {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center space-y-8 bg-white border border-black rounded-[3rem] w-full max-w-md mx-auto">
+      <div className="flex flex-col items-center justify-center p-12 text-center space-y-8 bg-white w-full max-w-md mx-auto">
         <motion.div 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -143,32 +143,28 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
 
   if (step === 'verification') {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center space-y-10 bg-white border border-black rounded-[3rem] w-full max-w-md mx-auto">
+      <div className="flex flex-col items-center justify-center p-12 text-center space-y-10 bg-white w-full max-w-md mx-auto">
         <div className="w-20 h-20 bg-black text-white rounded-full flex items-center justify-center">
           <CheckCircle2 className="w-10 h-10" />
         </div>
         <div className="space-y-4">
           <h2 className="text-[28px] font-black tracking-tighter leading-none uppercase">VÉRIFICATION</h2>
           <p className="text-black/60 font-medium leading-relaxed">
-            Saisissez le code à <span className="text-black font-bold">6 chiffres</span> envoyé à <span className="text-black font-bold">{email}</span>.
+            Saisissez le code envoyé à <span className="text-black font-bold">{email}</span>.
           </p>
         </div>
 
-        <form onSubmit={handleVerifyCode} className="w-full space-y-6">
-          <div className="space-y-2">
+        <form onSubmit={handleVerifyCode} className="w-full space-y-8">
+          <div className="relative">
             <input 
               type="text"
               required
               maxLength={6}
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-              placeholder="000000"
-              className="w-full text-center py-5 bg-slate-50 border-2 border-black rounded-[1.5rem] text-4xl font-black tracking-[0.5em] focus:ring-4 focus:ring-black/5 outline-none transition-all"
+              placeholder="Code de validation"
+              className="w-full text-center py-4 bg-transparent border-b-2 border-black/10 text-3xl font-black tracking-[0.5em] focus:border-black outline-none transition-all placeholder:text-black/20 placeholder:tracking-normal placeholder:font-bold placeholder:text-base"
             />
-          </div>
-
-          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 text-left">
-            <p>Note : Dans cette demo, le code est : <span className="font-black text-black">{actualCode}</span></p>
           </div>
 
           <AnimatePresence>
@@ -201,9 +197,9 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <Card className="p-12 space-y-10">
+      <div className="p-12 space-y-12 bg-white">
         <div className="text-center space-y-4">
-          <h2 className="text-[32px] font-black tracking-tighter leading-none uppercase">
+          <h2 className="text-[40px] font-black tracking-tighter leading-none uppercase">
             {isLogin ? 'Bon retour.' : 'Rejoindre.'}
           </h2>
           <p className="text-black/60 font-medium leading-relaxed">
@@ -213,39 +209,27 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-black uppercase tracking-[0.4em] px-2">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-black/20" />
-              <input 
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nom@exemple.com"
-                className="w-full pl-16 pr-6 py-5 bg-white border-2 border-black rounded-[1.5rem] focus:ring-4 focus:ring-black/5 transition-all outline-none text-base font-bold placeholder:text-black/10"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-10">
+          <div className="relative">
+            <input 
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              className="w-full py-4 bg-transparent border-b-2 border-black/10 focus:border-black transition-all outline-none text-lg font-bold placeholder:text-black/20"
+            />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-black uppercase tracking-[0.4em] px-2">
-              Mot de passe
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-black/20" />
-              <input 
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-16 pr-6 py-5 bg-white border-2 border-black rounded-[1.5rem] focus:ring-4 focus:ring-black/5 transition-all outline-none text-base font-bold placeholder:text-black/10"
-              />
-            </div>
+          <div className="relative">
+            <input 
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mot de passe"
+              className="w-full py-4 bg-transparent border-b-2 border-black/10 focus:border-black transition-all outline-none text-lg font-bold placeholder:text-black/20"
+            />
           </div>
 
           <AnimatePresence>
@@ -260,7 +244,7 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
           <button 
             type="submit"
             disabled={loading}
-            className="w-full bg-black text-white px-10 py-5 rounded-full font-bold flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all text-base tracking-tight disabled:opacity-50"
+            className="w-full bg-black text-white px-10 py-6 rounded-full font-bold flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all text-base tracking-tight disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
               <>
@@ -278,14 +262,14 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
             {isLogin ? "Pas de compte ? Créer" : "Déjà inscrit ? Connexion"}
           </button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
 
 
 const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={cn("bg-white border border-black rounded-[3rem] overflow-hidden", className)}>
+  <div className={cn("bg-white overflow-hidden", className)}>
     {children}
   </div>
 );

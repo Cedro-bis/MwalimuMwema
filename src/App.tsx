@@ -33,10 +33,11 @@ import { Level, Curriculum, Chapter, ScienceNews, HistoryItem } from './types';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 import { AuthUI } from './components/Auth';
+import { Chat } from './components/Chat';
 import { FirestoreService } from './lib/firestoreService';
 import { GeminiService } from './services/geminiService';
 import { cn } from './lib/utils';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, MessageSquare } from 'lucide-react';
 
 // --- Improved Components ---
 
@@ -805,6 +806,13 @@ const App = () => {
                    <h4 className="font-bold">Mémorisation active</h4>
                    <p className="text-xs text-slate-300 opacity-60 leading-relaxed font-medium">Prendre des notes pendant la lecture augmente significativement votre taux de réussite à l'évaluation.</p>
                 </Card>
+
+                <Chat 
+                  level={curriculum?.level || ''} 
+                  subject={curriculum?.subject || ''} 
+                  chapterTitle={activeChapter.title}
+                  lessonContent={activeChapter.content || ''}
+                />
               </div>
             </motion.div>
           )}
