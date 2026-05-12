@@ -30,8 +30,13 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Level, Curriculum, Chapter, ScienceNews, HistoryItem } from './types';
+import { onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { auth } from './lib/firebase';
+import { AuthUI } from './components/Auth';
+import { FirestoreService } from './lib/firestoreService';
 import { GeminiService } from './services/geminiService';
 import { cn } from './lib/utils';
+import { LogOut, User as UserIcon } from 'lucide-react';
 
 // --- Improved Components ---
 
@@ -81,6 +86,8 @@ const Card = ({ children, className, padding = true }: { children: React.ReactNo
 // --- Sections ---
 
 const App = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [view, setView] = useState<'onboarding' | 'curriculum' | 'lesson' | 'quiz' | 'news'>('onboarding');
   const [level, setLevel] = useState<Level>('Lycée');
   const [subject, setSubject] = useState('');
@@ -95,6 +102,28 @@ const App = () => {
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
   const [quote, setQuote] = useState({ text: "L'éducation est l'arme la plus puissante pour changer le monde.", author: "Nelson Mandela" });
   
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser && currentUser.emailVerified) {
+        setUser(currentUser);
+        await FirestoreService.ensureUser(currentUser.uid, currentUser.email!);
+        // Load cloud history
+        const cloudHistory = await FirestoreService.getUserCurriculums(currentUser.uid);
+        setHistory(cloudHistory.map(c => ({
+          id: `${c.level}_${c.subject}`.replace(/\s+/g, '_'),
+          curriculum: c,
+          completedChapters: c.completedChapters || [],
+          lastUpdated: c.lastAccessed?.toMillis() || Date.now()
+        })));
+      } else {
+        setUser(null);
+        setHistory([]);
+      }
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const quotes = [
     { text: "Rien n'est à craindre, tout est à comprendre.", author: "Marie Curie" },
     { text: "L'imagination est plus importante que la connaissance.", author: "Albert Einstein" },
@@ -107,23 +136,17 @@ const App = () => {
   useEffect(() => {
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
     setQuote(randomQuote);
-
-    // Load History
-    const saved = localStorage.getItem('mwalimumwema_history');
-    if (saved) {
-      try {
-        setHistory(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse history", e);
-      }
-    }
   }, []);
 
-  // Sync state to History
+  // Sync state to History and Cloud
   useEffect(() => {
-    if (!curriculum) return;
+    if (!curriculum || !user) return;
 
-    const historyId = `${curriculum.level}_${curriculum.subject}`;
+    const historyId = `${curriculum.level}_${curriculum.subject}`.replace(/\s+/g, '_');
+    
+    // Sync to Cloud
+    FirestoreService.updateProgress(user.uid, historyId, completedChapters);
+
     const newHistory: HistoryItem[] = [
       {
         id: historyId,
@@ -132,19 +155,21 @@ const App = () => {
         lastUpdated: Date.now()
       },
       ...history.filter(h => h.id !== historyId)
-    ].slice(0, 5); // Keep last 5
+    ].slice(0, 10); 
 
     setHistory(newHistory);
-    localStorage.setItem('mwalimumwema_history', JSON.stringify(newHistory));
-  }, [curriculum, completedChapters]);
+  }, [curriculum, completedChapters, user]);
 
   const handleStartCourse = async () => {
-    if (!subject.trim()) return;
+    if (!subject.trim() || !user) return;
     setLoading(true);
     try {
       const data = await GeminiService.generateCurriculum(level, subject);
       setCurriculum(data);
+      setCompletedChapters([]);
       setView('curriculum');
+      // Save to cloud
+      await FirestoreService.saveCurriculum(user.uid, data);
     } catch (error) {
       console.error("Failed to generate curriculum:", error);
     } finally {
@@ -153,12 +178,29 @@ const App = () => {
   };
 
   const handleSelectChapter = async (chapter: Chapter) => {
-    if (!curriculum) return;
+    if (!curriculum || !user) return;
+    
+    // Try to load from cloud first
+    const curriculumId = `${curriculum.level}_${curriculum.subject}`.replace(/\s+/g, '_');
+    const cloudDetails = await FirestoreService.getChapterDetails(user.uid, curriculumId, chapter.title);
+    
+    if (cloudDetails) {
+      const updatedChapter = { ...chapter, ...cloudDetails };
+      setActiveChapter(updatedChapter);
+      setCurriculum({
+        ...curriculum,
+        chapters: curriculum.chapters.map(c => c.id === chapter.id ? updatedChapter : c)
+      });
+      setView('lesson');
+      return;
+    }
+
     if (chapter.content) {
       setActiveChapter(chapter);
       setView('lesson');
       return;
     }
+
     setLoading(true);
     try {
       const details = await GeminiService.generateChapterDetails(curriculum.level, curriculum.subject, chapter.title);
@@ -168,6 +210,8 @@ const App = () => {
         ...curriculum,
         chapters: curriculum.chapters.map(c => c.id === chapter.id ? updatedChapter : c)
       });
+      // Save details to cloud
+      await FirestoreService.saveChapterDetails(user.uid, curriculumId, updatedChapter);
       setView('lesson');
     } catch (error) {
       console.error("Failed to fetch chapter details:", error);
@@ -214,11 +258,16 @@ const App = () => {
     setView('curriculum');
   };
 
-  const handleDeleteHistory = (e: React.MouseEvent, id: string) => {
+  const handleDeleteHistory = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    if (!user) return;
     const newHistory = history.filter(h => h.id !== id);
     setHistory(newHistory);
-    localStorage.setItem('mwalimumwema_history', JSON.stringify(newHistory));
+    try {
+      await FirestoreService.deleteCurriculum(user.uid, id);
+    } catch (err) {
+      console.error("Failed to delete from cloud", err);
+    }
   };
 
   const progress = curriculum ? Math.round((completedChapters.length / curriculum.chapters.length) * 100) : 0;
@@ -234,24 +283,50 @@ const App = () => {
           </h1>
         </div>
         
-        {curriculum && view !== 'onboarding' && (
-          <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6">
+          {curriculum && view !== 'onboarding' && (
             <div className="bg-white border border-black px-5 py-2 rounded-full text-xs font-bold text-black hidden md:flex items-center gap-3">
               <span className="opacity-40 uppercase tracking-widest text-[9px]">Niveau</span>
               <span>{curriculum.level}</span>
               <span className="w-1 h-1 rounded-full bg-black/20" />
               <span>{curriculum.subject}</span>
             </div>
-            <div className="w-10 h-10 bg-black rounded-full border border-black flex items-center justify-center overflow-hidden">
-               <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${curriculum.subject}`} alt="avatar" />
+          )}
+          {user && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-black rounded-full border border-black flex items-center justify-center overflow-hidden">
+                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="avatar" />
+              </div>
+              <button 
+                onClick={() => signOut(auth)}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors order-last md:order-none"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
       <main className="pt-32 pb-24 px-12 max-w-7xl mx-auto min-h-screen">
         <AnimatePresence mode="wait">
           
+          {authLoading ? (
+            <div className="flex items-center justify-center h-[60vh]">
+              <div className="w-20 h-20 border-2 border-black/5 border-t-black rounded-full animate-spin" />
+            </div>
+          ) : !user ? (
+            <motion.div 
+              key="auth"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center justify-center min-h-[60vh]"
+            >
+              <AuthUI onAuthSuccess={(u) => setUser(u)} />
+            </motion.div>
+          ) : (
+            <>
           {/* --- ONBOARDING --- */}
           {view === 'onboarding' && (
             <motion.div 
@@ -836,6 +911,8 @@ const App = () => {
             </motion.div>
           )}
 
+            </>
+          )}
         </AnimatePresence>
       </main>
 

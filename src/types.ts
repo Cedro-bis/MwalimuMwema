@@ -26,6 +26,8 @@ export interface Curriculum {
   level: Level;
   subject: string;
   chapters: Chapter[];
+  completedChapters?: string[];
+  lastAccessed?: any;
 }
 
 export interface HistoryItem {
