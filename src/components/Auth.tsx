@@ -44,8 +44,11 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
           await FirestoreService.saveVerificationCode(userCredential.user.uid, code);
           setStep('verification');
           setLoading(false);
+          setPassword(''); // Confidentialité: effacer le mot de passe
           return;
         }
+        setEmail('');
+        setPassword('');
         onAuthSuccess(userCredential.user);
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
@@ -58,6 +61,7 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
         // Simulation d'envoi de mail
         console.log(`[SIMULATION] Email de vérification envoyé à ${normalizedEmail}. Code: ${code}`);
         
+        setPassword(''); // Confidentialité
         setStep('verification');
       }
     } catch (err: any) {
@@ -94,9 +98,11 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
         if (auth.currentUser) {
           await FirestoreService.setUserVerified(auth.currentUser.uid);
           setStep('success');
+          setVerificationCode(''); // Effacer le code après validation
           
           setTimeout(() => {
             if (auth.currentUser) {
+              setEmail(''); // Clear email too
               onAuthSuccess(auth.currentUser);
             }
           }, 2000);

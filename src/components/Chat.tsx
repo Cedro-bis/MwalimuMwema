@@ -89,9 +89,12 @@ export const Chat = ({ level, subject, chapterTitle, lessonContent }: ChatProps)
                 "p-4 rounded-2xl text-sm leading-relaxed",
                 m.role === 'user' 
                   ? "bg-black text-white rounded-tr-none" 
-                  : "bg-white text-black/80 rounded-tl-none shadow-sm border border-black/5"
+                  : "bg-amber-50 text-amber-900 rounded-tl-none border border-amber-100"
               )}>
-                <div className="prose prose-sm prose-invert max-w-none">
+                <div className={cn(
+                  "prose prose-sm max-w-none",
+                  m.role === 'user' ? "prose-invert" : "text-amber-900"
+                )}>
                   <ReactMarkdown>
                     {m.content}
                   </ReactMarkdown>
