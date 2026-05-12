@@ -82,18 +82,33 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    if (verificationCode === actualCode) {
-      if (auth.currentUser) {
-        await FirestoreService.setUserVerified(auth.currentUser.uid);
-        setStep('success');
-        setTimeout(() => {
-          if (auth.currentUser) onAuthSuccess(auth.currentUser);
-        }, 2000);
+    setError(null);
+    try {
+      const trimmedCode = verificationCode.trim();
+      const trimmedActual = actualCode.trim();
+      
+      if (trimmedCode === trimmedActual) {
+        if (auth.currentUser) {
+          await FirestoreService.setUserVerified(auth.currentUser.uid);
+          setStep('success');
+          
+          setTimeout(() => {
+            if (auth.currentUser) {
+              onAuthSuccess(auth.currentUser);
+            }
+          }, 2000);
+        } else {
+          setError('Utilisateur non identifié. Veuillez vous reconnecter.');
+        }
+      } else {
+        setError('Code incorrect. Veuillez réessayer.');
       }
-    } else {
-      setError('Code incorrect. Veuillez réessayer.');
+    } catch (err: any) {
+      console.error("[AUTH] Verification error:", err);
+      setError('Une erreur est survenue lors de la vérification');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSignOut = async () => {

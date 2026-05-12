@@ -102,27 +102,46 @@ const App = () => {
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
   const [quote, setQuote] = useState({ text: "L'éducation est l'arme la plus puissante pour changer le monde.", author: "Nelson Mandela" });
   
+  // Handle user initialization when user is set or verified
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        const isVerified = await FirestoreService.checkUserVerification(currentUser.uid);
-        if (isVerified) {
-          setUser(currentUser);
-          await FirestoreService.ensureUser(currentUser.uid, currentUser.email!);
-          
-          // Load cloud history
-          const cloudHistory = await FirestoreService.getUserCurriculums(currentUser.uid);
+    const initUser = async () => {
+      if (user) {
+        setAuthLoading(true);
+        console.log(`[APP] Initializing data for user: ${user.email}`);
+        try {
+          await FirestoreService.ensureUser(user.uid, user.email!);
+          const cloudHistory = await FirestoreService.getUserCurriculums(user.uid);
           setHistory(cloudHistory.map(c => ({
             id: `${c.level}_${c.subject}`.replace(/\s+/g, '_'),
             curriculum: c,
             completedChapters: c.completedChapters || [],
             lastUpdated: c.lastAccessed?.toMillis() || Date.now()
           })));
+        } catch (err) {
+          console.error("[APP] Initialization error:", err);
+        } finally {
+          setAuthLoading(false);
+        }
+      }
+    };
+    initUser();
+  }, [user]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        console.log(`[APP] Auth state changed: ${currentUser.email}, checking verification...`);
+        const isVerified = await FirestoreService.checkUserVerification(currentUser.uid);
+        if (isVerified) {
+          console.log(`[APP] User is verified, logging in.`);
+          setUser(currentUser);
         } else {
-          setUser(null);
-          setHistory([]);
+          console.log(`[APP] User is NOT verified, showing auth UI.`);
+          // Don't set user to null immediately to avoid flickering during verification process
+          // unless checkUserVerification definitely says they are not verified
         }
       } else {
+        console.log(`[APP] No user signed in.`);
         setUser(null);
         setHistory([]);
       }
