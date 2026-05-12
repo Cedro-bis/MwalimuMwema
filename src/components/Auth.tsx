@@ -33,8 +33,9 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
     setError(null);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       if (isLogin) {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
         const isVerified = await FirestoreService.checkUserVerification(userCredential.user.uid);
         
         if (!isVerified) {
@@ -47,32 +48,34 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
         }
         onAuthSuccess(userCredential.user);
       } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await FirestoreService.ensureUser(userCredential.user.uid, email);
+        const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+        await FirestoreService.ensureUser(userCredential.user.uid, normalizedEmail);
         
         const code = generateCode();
         setActualCode(code);
         await FirestoreService.saveVerificationCode(userCredential.user.uid, code);
         
-        // In a real app, this is where you'd call a backend to send the email
-        console.log(`[REAL APP - EMAIL SENT TO ${email}] Code: ${code}`);
+        // Simulation d'envoi de mail
+        console.log(`[SIMULATION] Email de vérification envoyé à ${normalizedEmail}. Code: ${code}`);
         
         setStep('verification');
       }
     } catch (err: any) {
       console.error("Firebase Auth Error:", err.code, err.message);
       if (err.code === 'auth/email-already-in-use') {
-        setError('Cet email est déjà utilisé.');
+        setError('Cet email est déjà utilisé par un autre compte.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Format d\'email invalide.');
       } else if (err.code === 'auth/weak-password') {
-        setError('Le mot de passe est trop court.');
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        setError('compte inexistant');
+        setError('Le mot de passe doit contenir au moins 6 caractères.');
+      } else if (err.code === 'auth/user-not-found') {
+        setError('Aucun compte trouvé avec cet email.');
+      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('Email ou mot de passe incorrect.');
       } else if (err.code === 'auth/too-many-requests') {
-        setError('Trop de tentatives. Veuillez patienter quelques minutes.');
+        setError('Trop de tentatives. Veuillez patienter.');
       } else {
-        setError('Une erreur est survenue');
+        setError('Erreur de connexion. Vérifiez vos identifiants.');
       }
     } finally {
       setLoading(false);
@@ -162,9 +165,14 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
               maxLength={6}
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-              placeholder="Code de validation"
-              className="w-full text-center py-4 bg-transparent border-b-2 border-black/10 text-3xl font-black tracking-[0.5em] focus:border-black outline-none transition-all placeholder:text-black/20 placeholder:tracking-normal placeholder:font-bold placeholder:text-base"
+              placeholder="Saisir le code ici"
+              className="w-full text-center py-4 bg-transparent border-b-2 border-black/10 text-3xl font-black tracking-[0.5em] focus:border-black outline-none transition-all placeholder:text-black/20 placeholder:tracking-normal placeholder:font-bold placeholder:text-base mb-2"
             />
+            {step === 'verification' && (
+              <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest mt-2">
+                Le code est : <span className="text-black">{actualCode}</span> (Simulation mail)
+              </p>
+            )}
           </div>
 
           <AnimatePresence>
