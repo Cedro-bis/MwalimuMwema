@@ -141,18 +141,20 @@ export const GeminiService = {
    */
   async askAi(level: string, subject: string, chapterTitle: string, lessonContent: string, question: string): Promise<string> {
     const text = await callGeminiWithRetry({
-      contents: `Tu es MwalimuMwema, un tuteur IA expert. Un étudiant de niveau "${level}" suit un cours sur "${subject}".
-      Il étudie actuellement le chapitre : "${chapterTitle}".
+      contents: `Tu es MwalimuMwema, un tuteur IA expert. Un étudiant suit le cours "${subject}" au niveau "${level}".
+      Chapitre actuel : "${chapterTitle}".
       
-      Voici le contenu du cours qu'il est en tant que lire :
+      CONTENU DU CHAPITRE :
       ---
       ${lessonContent}
       ---
       
-      L'étudiant pose la question suivante : "${question}"
+      RÈGLES STRICTES :
+      1. Tu ne dois répondre QU'AUX QUESTIONS portant sur le contenu du chapitre ci-dessus.
+      2. Si la question de l'étudiant est hors-sujet ou ne concerne pas ce chapitre spécifique, réponds poliment : "Désolé, je suis uniquement programmé pour vous aider sur le chapitre '${chapterTitle}'. Veuillez poser une question en rapport avec le contenu de la leçon."
+      3. Tes réponses doivent être pédagogiques, précises et basées sur le texte fourni.
       
-      Réponds de manière pédagogique, claire et concise en te basant sur le contenu du cours et tes connaissances approfondies. 
-      Utilise le format Markdown pour ta réponse si nécessaire.`,
+      QUESTION DE L'ÉTUDIANT : "${question}"`,
     });
     return text || "Désolé, je n'ai pas pu générer de réponse.";
   },
