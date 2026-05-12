@@ -8,6 +8,7 @@ import {
   signOut
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { FirestoreService } from '../lib/firestoreService';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, Loader2, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -18,7 +19,13 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mustVerify, setMustVerify] = useState(false);
+  const [step, setStep] = useState<'auth' | 'verification' | 'success'>('auth');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [actualCode, setActualCode] = useState('');
+
+  const generateCode = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,17 +35,29 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
     try {
       if (isLogin) {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        if (!userCredential.user.emailVerified) {
-          setMustVerify(true);
-          await sendEmailVerification(userCredential.user);
+        const isVerified = await FirestoreService.checkUserVerification(userCredential.user.uid);
+        
+        if (!isVerified) {
+          const code = generateCode();
+          setActualCode(code);
+          await FirestoreService.saveVerificationCode(userCredential.user.uid, code);
+          setStep('verification');
           setLoading(false);
           return;
         }
         onAuthSuccess(userCredential.user);
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await sendEmailVerification(userCredential.user);
-        setMustVerify(true);
+        await FirestoreService.ensureUser(userCredential.user.uid, email);
+        
+        const code = generateCode();
+        setActualCode(code);
+        await FirestoreService.saveVerificationCode(userCredential.user.uid, code);
+        
+        // In a real app, this is where you'd call a backend to send the email
+        console.log(`[REAL APP - EMAIL SENT TO ${email}] Code: ${code}`);
+        
+        setStep('verification');
       }
     } catch (err: any) {
       console.error("Firebase Auth Error:", err.code, err.message);
@@ -53,7 +72,6 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
       } else if (err.code === 'auth/too-many-requests') {
         setError('Trop de tentatives. Veuillez patienter quelques minutes.');
       } else {
-        // As requested by the user, show generic message for other errors (like operation-not-allowed)
         setError('Une erreur est survenue');
       }
     } finally {
@@ -61,62 +79,106 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
     }
   };
 
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    if (verificationCode === actualCode) {
+      if (auth.currentUser) {
+        await FirestoreService.setUserVerified(auth.currentUser.uid);
+        setStep('success');
+        setTimeout(() => {
+          if (auth.currentUser) onAuthSuccess(auth.currentUser);
+        }, 2000);
+      }
+    } else {
+      setError('Code incorrect. Veuillez réessayer.');
+    }
+    setLoading(false);
+  };
+
   const handleSignOut = async () => {
     await signOut(auth);
-    setMustVerify(false);
+    setStep('auth');
     setEmail('');
     setPassword('');
   };
 
-  if (mustVerify) {
+  if (step === 'success') {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center space-y-8 bg-white border border-black rounded-[3rem] w-full max-w-md mx-auto">
-        <div className="w-20 h-20 bg-black text-white rounded-full flex items-center justify-center">
-          <Mail className="w-10 h-10" />
-        </div>
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center"
+        >
+          <CheckCircle2 className="w-10 h-10" />
+        </motion.div>
         <div className="space-y-4">
-          <h2 className="text-3xl font-black tracking-tight leading-none text-green-600">SUCCÈS !</h2>
-          <p className="text-black font-bold uppercase tracking-tight">Votre compte Mwalimu mwema a été créé avec succès.</p>
-          <p className="text-black/60 font-medium leading-relaxed">
-            Un lien de vérification a été envoyé à <span className="text-black font-bold">{email}</span>. 
-            Veuillez cliquer sur le lien pour activer votre compte.
+          <h2 className="text-3xl font-black tracking-tight leading-none text-green-600 uppercase">FÉLICITATIONS !</h2>
+          <p className="text-black font-extrabold text-lg leading-tight">
+            Votre compte Mwalimu mwema a été créé avec succès.
+          </p>
+          <p className="text-black/60 font-medium pt-2">
+            Redirection vers votre tableau de bord...
           </p>
         </div>
-        
-        <div className="flex flex-col gap-4 w-full">
-          <button 
-            onClick={async () => {
-              try {
-                if (auth.currentUser) {
-                  await sendEmailVerification(auth.currentUser);
-                  alert("E-mail renvoyé !");
-                }
-              } catch (err: any) {
-                if (err.code === 'auth/too-many-requests') {
-                  alert("Trop de tentatives. Veuillez patienter un instant avant de réessayer.");
-                } else {
-                  alert("Une erreur est survenue lors de l'envoi.");
-                }
-              }
-            }}
-            className="w-full py-4 bg-slate-100 rounded-full font-bold text-sm hover:bg-slate-200 transition-colors"
-          >
-            Renvoyer l'e-mail
-          </button>
+      </div>
+    );
+  }
 
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full py-4 bg-black text-white rounded-full font-bold text-sm hover:bg-zinc-800 transition-colors"
-          >
-            J'ai vérifié mon e-mail
-          </button>
+  if (step === 'verification') {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center space-y-10 bg-white border border-black rounded-[3rem] w-full max-w-md mx-auto">
+        <div className="w-20 h-20 bg-black text-white rounded-full flex items-center justify-center">
+          <CheckCircle2 className="w-10 h-10" />
+        </div>
+        <div className="space-y-4">
+          <h2 className="text-[28px] font-black tracking-tighter leading-none uppercase">VÉRIFICATION</h2>
+          <p className="text-black/60 font-medium leading-relaxed">
+            Saisissez le code à <span className="text-black font-bold">6 chiffres</span> envoyé à <span className="text-black font-bold">{email}</span>.
+          </p>
         </div>
 
+        <form onSubmit={handleVerifyCode} className="w-full space-y-6">
+          <div className="space-y-2">
+            <input 
+              type="text"
+              required
+              maxLength={6}
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+              placeholder="000000"
+              className="w-full text-center py-5 bg-slate-50 border-2 border-black rounded-[1.5rem] text-4xl font-black tracking-[0.5em] focus:ring-4 focus:ring-black/5 outline-none transition-all"
+            />
+          </div>
+
+          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 text-left">
+            <p>Note : Dans cette demo, le code est : <span className="font-black text-black">{actualCode}</span></p>
+          </div>
+
+          <AnimatePresence>
+            {error && (
+              <motion.div className="flex items-center gap-3 p-4 bg-red-50 text-red-900 rounded-2xl text-xs font-bold border border-red-100">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <button 
+            type="submit"
+            disabled={loading || verificationCode.length !== 6}
+            className="w-full bg-black text-white py-5 rounded-full font-bold flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all text-base disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirmer le code'}
+          </button>
+        </form>
+        
         <button 
           onClick={handleSignOut}
           className="text-sm font-black uppercase tracking-widest text-black/40 hover:text-black transition-colors"
         >
-          Retour à la connexion
+          Annuler
         </button>
       </div>
     );
@@ -131,8 +193,8 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
           </h2>
           <p className="text-black/60 font-medium leading-relaxed">
             {isLogin 
-              ? 'Connectez-vous pour retrouver vos cours et vos progrès.' 
-              : 'Créez votre compte pour apprendre sur mesure et partout.'}
+              ? 'Connectez-vous pour retrouver vos cours.' 
+              : 'Créez votre compte pour apprendre sur mesure.'}
           </p>
         </div>
 
@@ -173,12 +235,7 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
 
           <AnimatePresence>
             {error && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="flex items-center gap-3 p-4 bg-red-50 text-red-900 rounded-2xl text-xs font-bold border border-red-100"
-              >
+              <motion.div className="flex items-center gap-3 p-4 bg-red-50 text-red-900 rounded-2xl text-xs font-bold border border-red-100">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {error}
               </motion.div>
@@ -210,6 +267,7 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
     </div>
   );
 };
+
 
 const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <div className={cn("bg-white border border-black rounded-[3rem] overflow-hidden", className)}>

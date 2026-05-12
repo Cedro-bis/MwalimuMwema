@@ -104,17 +104,24 @@ const App = () => {
   
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser && currentUser.emailVerified) {
-        setUser(currentUser);
-        await FirestoreService.ensureUser(currentUser.uid, currentUser.email!);
-        // Load cloud history
-        const cloudHistory = await FirestoreService.getUserCurriculums(currentUser.uid);
-        setHistory(cloudHistory.map(c => ({
-          id: `${c.level}_${c.subject}`.replace(/\s+/g, '_'),
-          curriculum: c,
-          completedChapters: c.completedChapters || [],
-          lastUpdated: c.lastAccessed?.toMillis() || Date.now()
-        })));
+      if (currentUser) {
+        const isVerified = await FirestoreService.checkUserVerification(currentUser.uid);
+        if (isVerified) {
+          setUser(currentUser);
+          await FirestoreService.ensureUser(currentUser.uid, currentUser.email!);
+          
+          // Load cloud history
+          const cloudHistory = await FirestoreService.getUserCurriculums(currentUser.uid);
+          setHistory(cloudHistory.map(c => ({
+            id: `${c.level}_${c.subject}`.replace(/\s+/g, '_'),
+            curriculum: c,
+            completedChapters: c.completedChapters || [],
+            lastUpdated: c.lastAccessed?.toMillis() || Date.now()
+          })));
+        } else {
+          setUser(null);
+          setHistory([]);
+        }
       } else {
         setUser(null);
         setHistory([]);

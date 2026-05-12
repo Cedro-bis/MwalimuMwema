@@ -24,11 +24,46 @@ export const FirestoreService = {
         await setDoc(userRef, {
           uid,
           email,
-          createdAt: Timestamp.now()
+          createdAt: Timestamp.now(),
+          isVerified: false // Internal verification flag
         });
       }
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `users/${uid}`);
+    }
+  },
+
+  // Save verification code (temp)
+  async saveVerificationCode(uid: string, code: string) {
+    const ref = doc(db, 'users', uid, 'private', 'verification');
+    try {
+      await setDoc(ref, {
+        code,
+        createdAt: Timestamp.now()
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `users/${uid}/private/verification`);
+    }
+  },
+
+  // Check verification status
+  async checkUserVerification(uid: string) {
+    const userRef = doc(db, 'users', uid);
+    try {
+      const snap = await getDoc(userRef);
+      return snap.exists() ? snap.data()?.isVerified === true : false;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  // Set user as verified
+  async setUserVerified(uid: string) {
+    const userRef = doc(db, 'users', uid);
+    try {
+      await setDoc(userRef, { isVerified: true }, { merge: true });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${uid}`);
     }
   },
 

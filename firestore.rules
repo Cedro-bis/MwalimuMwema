@@ -11,8 +11,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isEmailVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
+    function isAccountVerified(userId) {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(userId)).data.isVerified == true;
     }
 
     function isOwner(userId) {
@@ -40,11 +40,18 @@ service cloud.firestore {
       }
 
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(incoming()) && isEmailVerified();
-      allow update: if isOwner(userId) && isValidUser(incoming()) && 
-                    incoming().email == existing().email &&
-                    incoming().uid == existing().uid &&
-                    isEmailVerified();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && (
+        // Allow updating isVerified field
+        (incoming().diff(existing()).affectedKeys().hasOnly(['isVerified'])) ||
+        // Allow general updates if already verified
+        isAccountVerified(userId)
+      );
+    }
+
+    // Temporary Verification Codes (Simplified for demo, should be Cloud Function in prod)
+    match /users/{userId}/private/verification {
+      allow get, write: if isOwner(userId);
     }
 
     // Curriculums
@@ -58,10 +65,10 @@ service cloud.firestore {
       }
 
       allow list, get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidCurriculum(incoming()) && isEmailVerified();
+      allow create: if isOwner(userId) && isValidCurriculum(incoming()) && isAccountVerified(userId);
       allow update: if isOwner(userId) && isValidCurriculum(incoming()) && 
                     incoming().userId == existing().userId &&
-                    isEmailVerified();
+                    isAccountVerified(userId);
       allow delete: if isOwner(userId);
     }
 
@@ -73,7 +80,7 @@ service cloud.firestore {
       }
 
       allow get: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isValidDetails(incoming()) && isEmailVerified();
+      allow create, update: if isOwner(userId) && isValidDetails(incoming()) && isAccountVerified(userId);
       allow delete: if isOwner(userId);
     }
   }
