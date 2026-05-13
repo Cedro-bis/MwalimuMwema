@@ -39,7 +39,7 @@ import { Calculator } from './components/Calculator';
 import { FirestoreService } from './lib/firestoreService';
 import { GeminiService } from './services/geminiService';
 import { cn } from './lib/utils';
-import { LogOut, User as UserIcon, MessageSquare, Brain } from 'lucide-react';
+import { LogOut, User as UserIcon, MessageSquare } from 'lucide-react';
 
 // --- Improved Components ---
 
@@ -994,29 +994,13 @@ const App = () => {
 
       {/* Global Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center p-12 text-center space-y-10">
+        <div className="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center">
             <motion.div 
                initial={{ scale: 0.8, opacity: 0 }}
                animate={{ scale: 1, opacity: 1 }}
-               className="relative"
             >
-               <div className="w-24 h-24 border-[3px] border-black/5 border-t-black rounded-full animate-spin" />
-               <Brain className="absolute inset-0 m-auto w-8 h-8 animate-pulse text-black/20" />
+               <div className="w-16 h-16 border-[3px] border-black/5 border-t-black rounded-full animate-spin" />
             </motion.div>
-            <div className="space-y-4 max-w-sm">
-               <h3 className="text-xl font-black tracking-tight uppercase">{loadingMessage}</h3>
-               <p className="text-xs text-black/40 font-medium leading-relaxed italic">
-                 "{quote.text}"
-               </p>
-            </div>
-            <div className="w-48 h-1 bg-black/5 rounded-full overflow-hidden">
-               <motion.div 
-                 initial={{ x: '-100%' }}
-                 animate={{ x: '100%' }}
-                 transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                 className="w-full h-full bg-black/20"
-               />
-            </div>
         </div>
       )}
     </div>
