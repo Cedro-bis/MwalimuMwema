@@ -34,10 +34,12 @@ import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 import { AuthUI } from './components/Auth';
 import { Chat } from './components/Chat';
+import { Profile } from './components/Profile';
+import { Calculator } from './components/Calculator';
 import { FirestoreService } from './lib/firestoreService';
 import { GeminiService } from './services/geminiService';
 import { cn } from './lib/utils';
-import { LogOut, User as UserIcon, MessageSquare } from 'lucide-react';
+import { LogOut, User as UserIcon, MessageSquare, Brain } from 'lucide-react';
 
 // --- Improved Components ---
 
@@ -89,7 +91,7 @@ const Card = ({ children, className, padding = true }: { children: React.ReactNo
 const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [view, setView] = useState<'onboarding' | 'curriculum' | 'lesson' | 'quiz' | 'news'>('onboarding');
+  const [view, setView] = useState<'onboarding' | 'curriculum' | 'lesson' | 'quiz' | 'news' | 'profile'>('onboarding');
   const [level, setLevel] = useState<Level>('Lycée');
   const [subject, setSubject] = useState('');
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
@@ -97,6 +99,7 @@ const App = () => {
   const [scienceNews, setScienceNews] = useState<ScienceNews[]>([]);
   const [newsSearchQuery, setNewsSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Analyse approfondie...');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [completedChapters, setCompletedChapters] = useState<string[]>([]);
   const [quizScore, setQuizScore] = useState<number | null>(null);
@@ -190,6 +193,7 @@ const App = () => {
   const handleStartCourse = async () => {
     if (!subject.trim() || !user) return;
     setLoading(true);
+    setLoadingMessage('Génération de votre programme sur mesure...');
     try {
       const data = await GeminiService.generateCurriculum(level, subject);
       setCurriculum(data);
@@ -211,6 +215,13 @@ const App = () => {
     const curriculumId = `${curriculum.level}_${curriculum.subject}`.replace(/\s+/g, '_');
     const cloudDetails = await FirestoreService.getChapterDetails(user.uid, curriculumId, chapter.title);
     
+    // Mark as started/being studied if not already
+    if (!completedChapters.includes(chapter.id)) {
+       // We can mark it as "studied" just by opening it to show progress in profile
+       // but user might want it only after quiz. Let's stick to quiz for "mastered"
+       // but maybe add a "current" flag? For now, we'll keep the quiz logic.
+    }
+
     if (cloudDetails) {
       const updatedChapter = { ...chapter, ...cloudDetails };
       setActiveChapter(updatedChapter);
@@ -229,6 +240,7 @@ const App = () => {
     }
 
     setLoading(true);
+    setLoadingMessage(`Rédaction du chapitre : ${chapter.title}...`);
     try {
       const details = await GeminiService.generateChapterDetails(curriculum.level, curriculum.subject, chapter.title);
       const updatedChapter = { ...chapter, ...details };
@@ -298,10 +310,14 @@ const App = () => {
   };
 
   const progress = curriculum ? Math.round((completedChapters.length / curriculum.chapters.length) * 100) : 0;
+  const isMathSubject = curriculum?.subject.toLowerCase().includes('math') || subject.toLowerCase().includes('math');
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
       
+      {/* Advanced Calculator for Math */}
+      {user && isMathSubject && (view === 'lesson' || view === 'curriculum') && <Calculator />}
+
       {/* --- Header --- */}
       <header className="fixed top-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl z-50 px-10 flex items-center justify-between border-b border-black">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('onboarding')}>
@@ -311,7 +327,7 @@ const App = () => {
         </div>
         
         <div className="flex items-center gap-6">
-          {curriculum && view !== 'onboarding' && (
+          {curriculum && view !== 'onboarding' && view !== 'profile' && (
             <div className="bg-white border border-black px-5 py-2 rounded-full text-xs font-bold text-black hidden md:flex items-center gap-3">
               <span className="opacity-40 uppercase tracking-widest text-[9px]">Niveau</span>
               <span>{curriculum.level}</span>
@@ -321,9 +337,12 @@ const App = () => {
           )}
           {user && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-black rounded-full border border-black flex items-center justify-center overflow-hidden">
+              <button 
+                onClick={() => setView('profile')}
+                className="w-10 h-10 bg-black rounded-full border border-black flex items-center justify-center overflow-hidden hover:scale-105 transition-transform"
+              >
                 <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="avatar" />
-              </div>
+              </button>
               <button 
                 onClick={() => signOut(auth)}
                 className="p-2 hover:bg-slate-100 rounded-full transition-colors order-last md:order-none"
@@ -354,6 +373,29 @@ const App = () => {
             </motion.div>
           ) : (
             <>
+          {/* --- PROFILE VIEW --- */}
+          {view === 'profile' && (
+            <Profile 
+              user={user} 
+              curriculums={history.map(h => h.curriculum)}
+              onBack={() => setView('onboarding')}
+              onLogout={() => {
+                setUser(null);
+                setView('onboarding');
+              }}
+              onSelectSubject={(curr) => {
+                const hist = history.find(h => h.id === `${curr.level}_${curr.subject}`.replace(/\s+/g, '_'));
+                if (hist) {
+                  handleResumeCourse(hist);
+                } else {
+                  setCurriculum(curr);
+                  setCompletedChapters(curr.completedChapters || []);
+                  setView('curriculum');
+                }
+              }}
+            />
+          )}
+
           {/* --- ONBOARDING --- */}
           {view === 'onboarding' && (
             <motion.div 
@@ -952,9 +994,28 @@ const App = () => {
 
       {/* Global Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center p-8">
-            <div className="relative">
-              <div className="w-20 h-20 border-2 border-black/5 border-t-black rounded-full animate-spin" />
+        <div className="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center p-12 text-center space-y-10">
+            <motion.div 
+               initial={{ scale: 0.8, opacity: 0 }}
+               animate={{ scale: 1, opacity: 1 }}
+               className="relative"
+            >
+               <div className="w-24 h-24 border-[3px] border-black/5 border-t-black rounded-full animate-spin" />
+               <Brain className="absolute inset-0 m-auto w-8 h-8 animate-pulse text-black/20" />
+            </motion.div>
+            <div className="space-y-4 max-w-sm">
+               <h3 className="text-xl font-black tracking-tight uppercase">{loadingMessage}</h3>
+               <p className="text-xs text-black/40 font-medium leading-relaxed italic">
+                 "{quote.text}"
+               </p>
+            </div>
+            <div className="w-48 h-1 bg-black/5 rounded-full overflow-hidden">
+               <motion.div 
+                 initial={{ x: '-100%' }}
+                 animate={{ x: '100%' }}
+                 transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                 className="w-full h-full bg-black/20"
+               />
             </div>
         </div>
       )}

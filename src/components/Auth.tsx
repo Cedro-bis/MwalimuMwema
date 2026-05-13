@@ -78,6 +78,8 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
         setError('Email ou mot de passe incorrect.');
       } else if (err.code === 'auth/too-many-requests') {
         setError('Trop de tentatives. Veuillez patienter.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError('Erreur de réseau. Vérifiez votre connexion internet.');
       } else {
         setError('Erreur de connexion. Vérifiez vos identifiants.');
       }
