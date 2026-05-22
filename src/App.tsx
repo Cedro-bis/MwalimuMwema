@@ -88,11 +88,21 @@ const Card = ({ children, className, padding = true }: { children: React.ReactNo
 
 // --- Sections ---
 
+const SUB_LEVELS: Record<string, string[]> = {
+  'Primaire': ['1ère', '2e', '3e', '4e', '5e', '6e'],
+  'Collège': ['7e', '8e'],
+  'Lycée': ['1ère', '2e', '3e', '4e'],
+  'Université': ['Bac1', 'Bac2', 'Bac3'],
+  'Master': ['Master1', 'Master2'],
+  'Études approfondies': []
+};
+
 const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [view, setView] = useState<'onboarding' | 'curriculum' | 'lesson' | 'quiz' | 'news' | 'profile'>('onboarding');
   const [level, setLevel] = useState<Level>('Lycée');
+  const [subLevel, setSubLevel] = useState<string>('1ère');
   const [subject, setSubject] = useState('');
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
   const [activeChapter, setActiveChapter] = useState<Chapter | null>(null);
@@ -195,7 +205,8 @@ const App = () => {
     setLoading(true);
     setLoadingMessage('Génération de votre programme sur mesure...');
     try {
-      const data = await GeminiService.generateCurriculum(level, subject);
+      const finalLevel = subLevel ? `${level} (${subLevel})` : level;
+      const data = await GeminiService.generateCurriculum(finalLevel, subject);
       setCurriculum(data);
       setCompletedChapters([]);
       setView('curriculum');
@@ -424,7 +435,15 @@ const App = () => {
                       {['Primaire', 'Collège', 'Lycée', 'Université', 'Master', 'Études approfondies'].map((l) => (
                         <button
                           key={l}
-                          onClick={() => setLevel(l as Level)}
+                          onClick={() => {
+                            setLevel(l as Level);
+                            const options = SUB_LEVELS[l] || [];
+                            if (options.length > 0) {
+                              setSubLevel(options[0]);
+                            } else {
+                              setSubLevel('');
+                            }
+                          }}
                           className={cn(
                             "px-5 py-4 rounded-2xl border-2 transition-all text-[11px] uppercase tracking-widest font-bold",
                             level === l 
@@ -437,6 +456,36 @@ const App = () => {
                       ))}
                     </div>
                   </div>
+
+                  {SUB_LEVELS[level] && SUB_LEVELS[level].length > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-4"
+                    >
+                      <label className="block text-[9px] font-black text-black uppercase tracking-[0.3em]">
+                        Sélectionner la classe / promotion
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={subLevel}
+                          onChange={(e) => setSubLevel(e.target.value)}
+                          className="w-full px-5 py-5 bg-white border-2 border-black rounded-[1.5rem] focus:ring-4 focus:ring-black/5 transition-all outline-none text-base font-bold appearance-none cursor-pointer"
+                        >
+                          {SUB_LEVELS[level].map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-5 flex items-center text-black">
+                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
 
                   <div className="space-y-4">
                     <label className="block text-[9px] font-black text-black uppercase tracking-[0.3em]">

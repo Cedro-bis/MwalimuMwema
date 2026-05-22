@@ -79,7 +79,7 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
       } else if (err.code === 'auth/too-many-requests') {
         setError('Trop de tentatives. Veuillez patienter.');
       } else if (err.code === 'auth/network-request-failed') {
-        setError('Erreur de réseau. Vérifiez votre connexion internet.');
+        setError('Erreur réseau (auth/network-request-failed). Si vous êtes dans l\'aperçu ou sur téléphone, votre navigateur bloque l\'authentification sécurisée dans l\'iFrame. Pour résoudre cela, ouvrez l\'application dans un nouvel onglet (bouton de partage ou d\'ouverture externe en haut à droite) ou désactivez les bloqueurs de contenu (ex: Brave Shields).');
       } else {
         setError('Erreur de connexion. Vérifiez vos identifiants.');
       }

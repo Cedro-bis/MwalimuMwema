@@ -46,7 +46,7 @@ export const Profile = ({ user, curriculums, onBack, onLogout, onSelectSubject }
     } catch (error: any) {
       console.error("Account deletion error:", error);
       if (error.code === 'auth/network-request-failed') {
-        alert("Erreur de réseau. Vérifiez votre connexion internet.");
+        alert("Erreur réseau (auth/network-request-failed). Si vous êtes dans l'aperçu ou sur téléphone, l'iFrame bloque l'action sécurisée. Veuillez ouvrir l'application dans un nouvel onglet ou désactiver les bloqueurs de contenu.");
       } else if (error.code === 'auth/wrong-password') {
         alert("Mot de passe incorrect.");
       } else {
