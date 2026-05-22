@@ -633,6 +633,29 @@ const App = () => {
                      {curriculum.chapters.length} Étapes
                    </span>
                 </div>
+
+                {/* Course Objectives Banner according to promotion */}
+                <div className="mb-6 p-5 bg-stone-50 border border-stone-200 rounded-2xl">
+                  <h4 className="text-xs font-black uppercase text-stone-900 tracking-widest mb-3 flex items-center gap-2">
+                    🎯 Objectifs globaux du cours ({curriculum.level})
+                  </h4>
+                  <ul className="space-y-2">
+                    {(curriculum.objectives && curriculum.objectives.length > 0
+                      ? curriculum.objectives
+                      : [
+                          `Acquérir des bases solides et approfondies en ${curriculum.subject}`,
+                          `Maîtriser les compétences clés et les applications pratiques adaptées au niveau ${curriculum.level}`,
+                          `Valider l'ensemble des chapitres par des évaluations interactives`
+                        ]
+                    ).map((obj, idx) => (
+                      <li key={idx} className="text-xs text-stone-600 font-medium flex items-center gap-2.5">
+                        <span className="w-1.5 h-1.5 bg-stone-900 rounded-full" />
+                        <span>{obj}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
                 <div className="space-y-4 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
                   {curriculum.chapters.map((chapter, index) => {
                     const isDone = completedChapters.includes(chapter.id);
@@ -810,6 +833,28 @@ const App = () => {
                     <h1 className="text-[36px] font-black text-black tracking-tighter leading-[1.1]">
                       {activeChapter.title}
                     </h1>
+
+                    {/* Chapter objectives display */}
+                    <div className="pt-2 pb-5 border-b border-black/5">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-3">
+                        🎯 Objectifs d'apprentissage du chapitre
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        {(activeChapter.objectives && activeChapter.objectives.length > 0
+                          ? activeChapter.objectives
+                          : [
+                              "Comprendre les notions théoriques majeures abordées dans ce chapitre.",
+                              "Être capable de mettre en pratique et d'exposer les concepts clés de manière fluide.",
+                              "Réussir l'évaluation finale avec un score de validation optimal."
+                            ]
+                        ).map((obj, idx) => (
+                          <div key={idx} className="flex items-start gap-2.5 text-sm text-black/70 font-medium leading-relaxed">
+                            <span className="text-black/30 font-bold">•</span>
+                            <span>{obj}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                 </div>
 
                 <div className="prose prose-slate max-w-none font-normal text-[18px] leading-relaxed text-black/80">

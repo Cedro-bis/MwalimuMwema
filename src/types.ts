@@ -16,6 +16,7 @@ export interface Chapter {
   id: string;
   title: string;
   description: string;
+  objectives?: string[];
   content?: string;
   youtubeLinks?: { title: string; url: string }[];
   quiz?: QuizQuestion[];
@@ -26,6 +27,7 @@ export interface Curriculum {
   level: Level;
   subject: string;
   chapters: Chapter[];
+  objectives?: string[];
   completedChapters?: string[];
   lastAccessed?: any;
 }

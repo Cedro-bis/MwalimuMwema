@@ -41,8 +41,10 @@ export const GeminiService = {
    */
   async generateCurriculum(level: Level, subject: string): Promise<Curriculum> {
     const text = await callGeminiWithRetry({
-      contents: `Génère un programme d'étude structuré (curriculum) pour le niveau "${level}" et la matière "${subject}". 
-      Le programme doit être complet et inclure environ 5 à 10 chapitres logiques.`,
+      contents: `Génère un programme d'étude structuré (curriculum) pour le niveau ou la classe/promotion "${level}" et la matière "${subject}". 
+      Le programme doit être complet et inclure :
+      1. Environ 5 à 10 chapitres logiques.
+      2. Une liste de 3 à 4 objectifs principaux globaux (objectives) du cours adaptés spécifiquement pour le niveau ou la promotion "${level}".`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -50,6 +52,11 @@ export const GeminiService = {
           properties: {
             level: { type: Type.STRING },
             subject: { type: Type.STRING },
+            objectives: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "3 à 4 objectifs d'apprentissage globaux pour ce cours"
+            },
             chapters: {
               type: Type.ARRAY,
               items: {
@@ -63,7 +70,7 @@ export const GeminiService = {
               }
             }
           },
-          required: ["level", "subject", "chapters"]
+          required: ["level", "subject", "chapters", "objectives"]
         }
       }
     });
@@ -76,11 +83,11 @@ export const GeminiService = {
    */
   async generateChapterDetails(level: Level, subject: string, chapterTitle: string): Promise<Partial<Chapter>> {
     const text = await callGeminiWithRetry({
-      contents: `Génère le contenu détaillé pour le chapitre "${chapterTitle}" dans la matière "${subject}" au niveau "${level}".
+      contents: `Génère le contenu détaillé pour le chapitre "${chapterTitle}" dans la matière "${subject}" au niveau ou classe/promotion "${level}".
       CONTRÔLE DE FORMAT CRITIQUE:
       1. Le "content" doit être un cours approfondi au format Markdown pur. 
       2. INCLURE SYSTÉMATIQUEMENT des exemples concrets, des cas d'utilisation réels et des blocs de code (avec syntax highlighting) si le sujet est technique ou scientifique.
-      3. INCLURE une section "### Références Bibliographiques" à la fin du cours avec des ouvrages ou articles académiques réels et reconnus pour approfondir le sujet, adaptés au niveau "${level}". 
+      3. INCLURE une section "### Références Bibliographiques" à la fin du cours avec des ouvrages ou articles académiques réels et reconnus pour approfondir le sujet, adaptés au niveau ou classe "${level}". 
       4. RÈGLE D'OR POUR LES LIENS: N'utilisez QUE des liens de recherche ultra-fiables vers Google Books ou Open Library. 
          Exemple : [Titre du Livre - Auteur](https://www.google.com/search?tbm=bks&q=TITRE+AUTEUR)
       5. SI LE LIEN N'EST PAS GARANTI FONCTIONNEL À 100%, NE METTEZ PAS DE LIEN. Affichez simplement la référence textuellement. Mieux vaut pas de lien qu'un lien mort (404).
@@ -89,6 +96,7 @@ export const GeminiService = {
       8. Assure-toi qu'il y a des doubles retours à la ligne entre chaque paragraphe et chaque titre pour un rendu optimal.
       9. Ne mets pas tout le texte en gras. Réserve le gras pour les termes techniques importants uniquement.
       Inclus aussi:
+      - exactes 2 ou 3 objectifs spécifiques de ce chapitre (objectives), rédigées simplement pour l'étudiant de cette classe.
       - 3 suggestions de titres de vidéos YouTube pertinentes.
       - Un quiz de 3 questions QCM.`,
       config: {
@@ -97,6 +105,11 @@ export const GeminiService = {
           type: Type.OBJECT,
           properties: {
             content: { type: Type.STRING },
+            objectives: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "2 ou 3 objectifs spécifiques pour ce chapitre"
+            },
             youtubeLinks: {
               type: Type.ARRAY,
               items: {
@@ -122,7 +135,7 @@ export const GeminiService = {
               }
             }
           },
-          required: ["content", "youtubeLinks", "quiz"]
+          required: ["content", "objectives", "youtubeLinks", "quiz"]
         }
       }
     });
