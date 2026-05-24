@@ -124,13 +124,14 @@ export const FirestoreService = {
     }
   },
 
-  // Update curriculum progress (completed chapters)
-  async updateProgress(userId: string, curriculumId: string, completedChapters: string[]) {
+  // Update curriculum progress (completed chapters and scores)
+  async updateProgress(userId: string, curriculumId: string, completedChapters: string[], chapterScores?: Record<string, number>) {
     const id = curriculumId.replace(/\s+/g, '_');
     const ref = doc(db, 'users', userId, 'curriculums', id);
     try {
       await setDoc(ref, { 
         completedChapters,
+        chapterScores: chapterScores || {},
         lastAccessed: Timestamp.now() 
       }, { merge: true });
     } catch (e) {

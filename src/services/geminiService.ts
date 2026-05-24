@@ -98,7 +98,9 @@ export const GeminiService = {
       Inclus aussi:
       - exactes 2 ou 3 objectifs spécifiques de ce chapitre (objectives), rédigées simplement pour l'étudiant de cette classe.
       - 3 suggestions de titres de vidéos YouTube pertinentes.
-      - Un quiz de 3 questions QCM.`,
+      - Un quiz complet de 10 questions pour parcourir tout le chapitre en profondeur :
+        - Les 9 premières questions (index 0 à 8) doivent être des questions à choix multiple (QCM) avec 4 options (type: 'mcq').
+        - La 10ème question (index 9) doit être une question ouverte où l'utilisateur écrit sa réponse (type: 'text'). Pour cette question ouverte, laissez 'options' sous forme de tableau vide, mettez correctAnswerIndex à -1, et mettez la réponse textuelle courte exacte attendue (un mot, formule simple ou clé) dans 'correctAnswerText'.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -126,12 +128,24 @@ export const GeminiService = {
               items: {
                 type: Type.OBJECT,
                 properties: {
+                  type: { type: Type.STRING, enum: ["mcq", "text"], description: "Type de question: 'mcq' pour choix multiple, 'text' pour réponse écrite libre" },
                   question: { type: Type.STRING },
-                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  correctAnswer: { type: Type.NUMBER, description: "Index de la bonne réponse (0-indexed)" },
+                  options: { 
+                    type: Type.ARRAY, 
+                    items: { type: Type.STRING },
+                    description: "Les options possibles (4 choix) pour mcq. Tableau vide [] si type de question est 'text'."
+                  },
+                  correctAnswerIndex: { 
+                    type: Type.NUMBER, 
+                    description: "Uniquement pour le type 'mcq', l'index de la bonne réponse (0-indexed). Mettez -1 pour le type 'text'." 
+                  },
+                  correctAnswerText: { 
+                    type: Type.STRING, 
+                    description: "La réponse écrite courte correcte pour le type 'text' (ou mot clé de réponse). Mettez un texte vide pour le type 'mcq'." 
+                  },
                   explanation: { type: Type.STRING }
                 },
-                required: ["question", "options", "correctAnswer", "explanation"]
+                required: ["type", "question", "options", "correctAnswerIndex", "correctAnswerText", "explanation"]
               }
             }
           },

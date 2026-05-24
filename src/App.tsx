@@ -112,8 +112,9 @@ const App = () => {
   const [loadingMessage, setLoadingMessage] = useState('Analyse approfondie...');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [completedChapters, setCompletedChapters] = useState<string[]>([]);
+  const [chapterScores, setChapterScores] = useState<Record<string, number>>({});
   const [quizScore, setQuizScore] = useState<number | null>(null);
-  const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<(number | string)[]>([]);
   const [quote, setQuote] = useState({ text: "L'éducation est l'arme la plus puissante pour changer le monde.", author: "Nelson Mandela" });
   
   // Handle user initialization when user is set or verified
@@ -129,6 +130,7 @@ const App = () => {
             id: `${c.level}_${c.subject}`.replace(/\s+/g, '_'),
             curriculum: c,
             completedChapters: c.completedChapters || [],
+            chapterScores: c.chapterScores || {},
             lastUpdated: c.lastAccessed?.toMillis() || Date.now()
           })));
         } catch (err) {
@@ -185,20 +187,21 @@ const App = () => {
     const historyId = `${curriculum.level}_${curriculum.subject}`.replace(/\s+/g, '_');
     
     // Sync to Cloud
-    FirestoreService.updateProgress(user.uid, historyId, completedChapters);
+    FirestoreService.updateProgress(user.uid, historyId, completedChapters, chapterScores);
 
     const newHistory: HistoryItem[] = [
       {
         id: historyId,
         curriculum,
         completedChapters,
+        chapterScores,
         lastUpdated: Date.now()
       },
       ...history.filter(h => h.id !== historyId)
     ].slice(0, 10); 
 
     setHistory(newHistory);
-  }, [curriculum, completedChapters, user]);
+  }, [curriculum, completedChapters, chapterScores, user]);
 
   const handleStartCourse = async () => {
     if (!subject.trim() || !user) return;
@@ -209,6 +212,7 @@ const App = () => {
       const data = await GeminiService.generateCurriculum(finalLevel, subject);
       setCurriculum(data);
       setCompletedChapters([]);
+      setChapterScores({});
       setView('curriculum');
       // Save to cloud
       await FirestoreService.saveCurriculum(user.uid, data);
@@ -276,13 +280,29 @@ const App = () => {
     setQuizAnswers([]);
   };
 
-  const handleQuizSubmit = (answers: number[]) => {
+  const handleQuizSubmit = (answers: (number | string)[]) => {
     if (!activeChapter?.quiz) return;
     let score = 0;
-    answers.forEach((ans, idx) => {
-      if (ans === activeChapter.quiz![idx].correctAnswer) score++;
+    activeChapter.quiz.forEach((q, idx) => {
+      const userAns = answers[idx];
+      if (q.type === 'text') {
+        const uStr = String(userAns || '').trim().toLowerCase();
+        const cStr = String(q.correctAnswerText || '').trim().toLowerCase();
+        if (cStr && (uStr.includes(cStr) || cStr.includes(uStr))) {
+          score++;
+        }
+      } else {
+        const correctIdx = q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : q.correctAnswer;
+        if (userAns !== undefined && Number(userAns) === Number(correctIdx)) {
+          score++;
+        }
+      }
     });
     setQuizScore(score);
+    setChapterScores(prev => ({
+      ...prev,
+      [activeChapter.id]: score
+    }));
     if (!completedChapters.includes(activeChapter.id)) {
       setCompletedChapters([...completedChapters, activeChapter.id]);
     }
@@ -304,7 +324,8 @@ const App = () => {
 
   const handleResumeCourse = (historyItem: HistoryItem) => {
     setCurriculum(historyItem.curriculum);
-    setCompletedChapters(historyItem.completedChapters);
+    setCompletedChapters(historyItem.completedChapters || []);
+    setChapterScores(historyItem.chapterScores || {});
     setView('curriculum');
   };
 
@@ -322,6 +343,15 @@ const App = () => {
 
   const progress = curriculum ? Math.round((completedChapters.length / curriculum.chapters.length) * 100) : 0;
   const isMathSubject = curriculum?.subject.toLowerCase().includes('math') || subject.toLowerCase().includes('math');
+
+  // Calculate overall course score out of 20
+  const overallCourseScore = (() => {
+    if (!completedChapters.length) return 0;
+    const sum = completedChapters.reduce((acc, cid) => {
+      return acc + (chapterScores[cid] !== undefined ? chapterScores[cid] : 10);
+    }, 0);
+    return (sum / (completedChapters.length * 10)) * 20;
+  })();
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
@@ -401,6 +431,7 @@ const App = () => {
                 } else {
                   setCurriculum(curr);
                   setCompletedChapters(curr.completedChapters || []);
+                  setChapterScores(curr.chapterScores || {});
                   setView('curriculum');
                 }
               }}
@@ -620,6 +651,16 @@ const App = () => {
                     <span className="absolute text-3xl font-bold">{progress}%</span>
                   </div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{completedChapters.length} chapitres maîtrisés</p>
+
+                  <div className="mt-4 pt-4 border-t border-white/10 w-full text-center">
+                    <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Note globale du cours</p>
+                    <p className="text-2xl font-black text-white">
+                      {completedChapters.length > 0 
+                        ? `${overallCourseScore.toFixed(1)} / 20` 
+                        : "-- / 20"
+                      }
+                    </p>
+                  </div>
                 </div>
               </Card>
 
@@ -973,32 +1014,62 @@ const App = () => {
                     {activeChapter.quiz.map((q, qIndex) => (
                       <Card key={qIndex} className="p-8 space-y-6 bg-white border-slate-100">
                         <div className="flex gap-4">
-                           <span className="text-slate-900 font-black text-3xl">0{qIndex + 1}</span>
-                           <h3 className="text-lg font-bold text-slate-800 pt-1.5 leading-snug">{q.question}</h3>
+                           <span className="text-slate-900 font-black text-3xl">
+                             {qIndex + 1 < 10 ? `0${qIndex + 1}` : qIndex + 1}
+                           </span>
+                           <div className="flex-1 pt-1.5">
+                             <div className="flex flex-wrap items-center gap-2 mb-1">
+                               <h3 className="text-lg font-bold text-slate-800 leading-snug">{q.question}</h3>
+                               {q.type === 'text' && (
+                                 <span className="bg-amber-100 text-amber-800 text-[9px] uppercase font-black px-2 py-0.5 rounded-full inline-block">
+                                   Question ouverte
+                                 </span>
+                               )}
+                             </div>
+                           </div>
                         </div>
-                        <div className="grid grid-cols-1 gap-3 sm:pl-12">
-                          {q.options.map((option, oIndex) => {
-                            const isActive = quizAnswers[qIndex] === oIndex;
-                            return (
-                              <button
-                                key={oIndex}
-                                onClick={() => {
-                                  const newAnswers = [...quizAnswers];
-                                  newAnswers[qIndex] = oIndex;
-                                  setQuizAnswers(newAnswers);
-                                }}
-                                className={cn(
-                                  "text-left p-4 rounded-2xl border transition-all text-xs font-bold uppercase tracking-wider",
-                                  isActive 
-                                    ? "border-slate-900 bg-slate-900 text-white ring-4 ring-slate-100" 
-                                    : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"
-                                )}
-                              >
-                                {option}
-                              </button>
-                            );
-                          })}
-                        </div>
+
+                        {q.type === 'text' ? (
+                          <div className="sm:pl-12 space-y-2">
+                            <input
+                              type="text"
+                              placeholder="Tapez votre réponse ici..."
+                              value={String(quizAnswers[qIndex] || '')}
+                              onChange={(e) => {
+                                const newAnswers = [...quizAnswers];
+                                newAnswers[qIndex] = e.target.value;
+                                setQuizAnswers(newAnswers);
+                              }}
+                              className="w-full px-5 py-4 border-2 border-slate-200 rounded-2xl focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all outline-none text-sm font-bold bg-slate-50 text-slate-900"
+                            />
+                            <p className="text-[10px] text-slate-400 font-medium">Réponse courte (un ou deux mots attendus)</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-3 sm:pl-12">
+                            {(q.options || []).map((option, oIndex) => {
+                              const isActive = quizAnswers[qIndex] === oIndex;
+                              return (
+                                <button
+                                  key={oIndex}
+                                  type="button"
+                                  onClick={() => {
+                                    const newAnswers = [...quizAnswers];
+                                    newAnswers[qIndex] = oIndex;
+                                    setQuizAnswers(newAnswers);
+                                  }}
+                                  className={cn(
+                                    "text-left p-4 rounded-2xl border transition-all text-xs font-bold uppercase tracking-wider",
+                                    isActive 
+                                      ? "border-slate-900 bg-slate-900 text-white ring-4 ring-slate-100" 
+                                      : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"
+                                  )}
+                                >
+                                  {option}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </Card>
                     ))}
                   </div>
@@ -1008,13 +1079,18 @@ const App = () => {
                        <div className="space-y-2">
                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Résumé du Quiz</h4>
                          <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                            Vous devez répondre à toutes les questions ({activeChapter.quiz.length}) pour voir vos résultats.
+                            Vous devez répondre à toutes les questions ({activeChapter.quiz.length}) pour voir vos résultats et valider le module.
                          </p>
                        </div>
                        <Button 
                         onClick={() => handleQuizSubmit(quizAnswers)} 
                         className="w-full h-14 text-sm"
-                        disabled={quizAnswers.length < activeChapter.quiz.length}
+                        disabled={
+                          activeChapter.quiz.some((_, idx) => {
+                            const ans = quizAnswers[idx];
+                            return ans === undefined || String(ans).trim() === "";
+                          })
+                        }
                       >
                         Finaliser le module
                       </Button>
@@ -1054,26 +1130,62 @@ const App = () => {
                   <div className="space-y-4">
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest px-1">Correction détaillée</h3>
                     <div className="space-y-3 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
-                      {activeChapter.quiz.map((q, i) => (
-                        <div key={i} className="p-5 bg-white border border-slate-100 rounded-2xl space-y-3 transition-shadow hover:shadow-sm">
-                          <div className="flex items-start gap-4">
-                              {quizAnswers[i] === q.correctAnswer ? (
-                                <div className="w-6 h-6 rounded-lg bg-slate-900 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                   <CheckCircle className="text-white w-4 h-4" />
+                      {activeChapter.quiz.map((q, i) => {
+                        const isCorrect = (() => {
+                          if (q.type === 'text') {
+                            const uStr = String(quizAnswers[i] || '').trim().toLowerCase();
+                            const cStr = String(q.correctAnswerText || '').trim().toLowerCase();
+                            return cStr && (uStr.includes(cStr) || cStr.includes(uStr));
+                          } else {
+                            const correctIdx = q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : q.correctAnswer;
+                            return quizAnswers[i] !== undefined && Number(quizAnswers[i]) === Number(correctIdx);
+                          }
+                        })();
+
+                        const correctDisplayStr = (() => {
+                          if (q.type === 'text') {
+                            return q.correctAnswerText || '';
+                          } else {
+                            const correctIdx = q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : q.correctAnswer;
+                            return q.options && q.options[Number(correctIdx)] ? q.options[Number(correctIdx)] : '';
+                          }
+                        })();
+
+                        return (
+                          <div key={i} className="p-5 bg-white border border-slate-100 rounded-2xl space-y-3 transition-shadow hover:shadow-sm">
+                            <div className="flex items-start gap-4">
+                                {isCorrect ? (
+                                  <div className="w-6 h-6 rounded-lg bg-slate-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                     <CheckCircle className="text-white w-4 h-4" />
+                                  </div>
+                                ) : (
+                                  <div className="w-6 h-6 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                     <div className="text-white font-black text-[10px]">X</div>
+                                  </div>
+                                )}
+                                <div className="space-y-1.5 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-xs text-slate-800 leading-tight">{q.question}</p>
+                                    {q.type === 'text' && (
+                                      <span className="bg-amber-100 text-amber-800 text-[8px] uppercase font-black px-1.5 py-0.2 rounded-full inline-block">
+                                        Libre
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 pt-1">
+                                    <p className="text-slate-900 text-[10px] font-black uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-full inline-block">
+                                      Votre réponse: {q.type === 'text' ? (quizAnswers[i] || '(vide)') : (q.options ? q.options[Number(quizAnswers[i])] : '')}
+                                    </p>
+                                    <p className="text-green-800 text-[10px] font-black uppercase tracking-wider bg-green-50 px-2 py-0.5 rounded-full inline-block">
+                                      Attendu : {correctDisplayStr}
+                                    </p>
+                                  </div>
+                                  <p className="text-slate-400 text-[10px] italic leading-relaxed pt-1">{q.explanation}</p>
                                 </div>
-                              ) : (
-                                <div className="w-6 h-6 rounded-lg bg-slate-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                   <div className="text-white font-black text-[10px]">X</div>
-                                </div>
-                              )}
-                              <div className="space-y-1.5 flex-1">
-                                <p className="font-bold text-xs text-slate-800 leading-tight">{q.question}</p>
-                                <p className="text-slate-900 text-[10px] font-black uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-full inline-block">Réponse: {q.options[q.correctAnswer]}</p>
-                                <p className="text-slate-400 text-[10px] italic leading-relaxed pt-1">{q.explanation}</p>
-                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </motion.div>

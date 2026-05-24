@@ -8,8 +8,11 @@ export type Level = 'Primaire' | 'Collège' | 'Lycée' | 'Université' | 'Master
 export interface QuizQuestion {
   question: string;
   options: string[];
-  correctAnswer: number;
+  correctAnswerIndex?: number;
+  correctAnswerText?: string;
   explanation: string;
+  type?: 'mcq' | 'text';
+  correctAnswer?: number; // for backwards compatibility
 }
 
 export interface Chapter {
@@ -29,6 +32,7 @@ export interface Curriculum {
   chapters: Chapter[];
   objectives?: string[];
   completedChapters?: string[];
+  chapterScores?: Record<string, number>;
   lastAccessed?: any;
 }
 
@@ -36,6 +40,7 @@ export interface HistoryItem {
   id: string;
   curriculum: Curriculum;
   completedChapters: string[];
+  chapterScores?: Record<string, number>;
   lastUpdated: number;
 }
 
