@@ -6,7 +6,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Level, Curriculum, Chapter, QuizQuestion, ScienceNews } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = new GoogleGenAI({ 
+  apiKey: process.env.GEMINI_API_KEY,
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
 
 /**
  * Helper to call Gemini with retries for transient RPC/XHR errors
@@ -17,7 +24,7 @@ async function callGeminiWithRetry(params: any, maxRetries = 2): Promise<string>
     try {
       const response = await ai.models.generateContent({
         ...params,
-        model: "gemini-3-flash-preview", // Use current reliable model alias
+        model: "gemini-3.5-flash", // Use current reliable model alias
       });
       if (!response.text) throw new Error("Réponse vide de l'IA (Empty text)");
       return response.text;

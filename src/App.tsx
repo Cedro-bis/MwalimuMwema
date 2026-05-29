@@ -280,7 +280,7 @@ const App = () => {
     setQuizAnswers([]);
   };
 
-  const handleQuizSubmit = (answers: (number | string)[]) => {
+  const handleQuizSubmit = async (answers: (number | string)[]) => {
     if (!activeChapter?.quiz) return;
     let score = 0;
     activeChapter.quiz.forEach((q, idx) => {
@@ -298,13 +298,44 @@ const App = () => {
         }
       }
     });
+
     setQuizScore(score);
+    
+    // Save the score in local chapterScores state
     setChapterScores(prev => ({
       ...prev,
       [activeChapter.id]: score
     }));
-    if (!completedChapters.includes(activeChapter.id)) {
-      setCompletedChapters([...completedChapters, activeChapter.id]);
+
+    if (score >= 6) {
+      if (!completedChapters.includes(activeChapter.id)) {
+        setCompletedChapters([...completedChapters, activeChapter.id]);
+      }
+    } else {
+      // Score < 6: We fail validation. Ensure it is removed from completedChapters in state and cloud
+      setCompletedChapters(prev => prev.filter(id => id !== activeChapter.id));
+      
+      if (curriculum && user) {
+        const curriculumId = `${curriculum.level}_${curriculum.subject}`.replace(/\s+/g, '_');
+        try {
+          // Delete chapter cache in Firestore
+          await FirestoreService.deleteChapterDetails(user.uid, curriculumId, activeChapter.title);
+        } catch (error) {
+          console.error("Failed to delete chapter details:", error);
+        }
+
+        // Wipe local chapters cached info to force reload + regenerate next time
+        setCurriculum({
+          ...curriculum,
+          chapters: curriculum.chapters.map(c => {
+            if (c.id === activeChapter.id) {
+              const { content, quiz, youtubeLinks, objectives, ...rest } = c;
+              return { ...rest };
+            }
+            return c;
+          })
+        });
+      }
     }
   };
 
@@ -934,12 +965,22 @@ const App = () => {
                     })()}
                   </div>
 
-                  <Button 
-                     onClick={handleFinishChapter} 
-                     className="h-14 px-10 text-base rounded-2xl shadow-xl shadow-slate-100 w-full"
-                  >
-                     Débuter l'évaluation <ChevronRight className="w-5 h-5" />
-                  </Button>
+                  {(chapterScores[activeChapter.id] || 0) >= 6 ? (
+                    <div className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-2 mt-4 shadow-sm">
+                      <div className="inline-flex w-10 h-10 bg-slate-900 rounded-full items-center justify-center text-white font-bold mx-auto mb-1">
+                        ✓
+                      </div>
+                      <p className="text-sm font-bold text-slate-900">Chapitre maîtrisé ! ({chapterScores[activeChapter.id]} / 10)</p>
+                      <p className="text-xs text-slate-500 font-medium">Vous avez déjà validé ce chapitre avec brio (score ≥ 6/10). L'accès à l'évaluation pour ce chapitre a été clôturé.</p>
+                    </div>
+                  ) : (
+                    <Button 
+                       onClick={handleFinishChapter} 
+                       className="h-14 px-10 text-base rounded-2xl shadow-xl shadow-slate-100 w-full"
+                    >
+                       Débuter l'évaluation <ChevronRight className="w-5 h-5" />
+                    </Button>
+                  )}
                 </div>
               </Card>
 
@@ -1103,28 +1144,63 @@ const App = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8"
                 >
-                  <Card className="p-12 text-center bg-slate-900 border-none text-white flex flex-col items-center justify-center gap-6">
-                    <div className="bg-white/10 w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-inner ring-1 ring-white/10">
-                       <Award className="text-slate-400 w-12 h-12" />
+                  <Card className={cn(
+                    "p-12 text-center border-none text-white flex flex-col items-center justify-center gap-6",
+                    (quizScore !== null && quizScore >= 6) ? "bg-slate-900" : "bg-red-950 border border-red-900"
+                  )}>
+                    <div className={cn(
+                      "w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-inner ring-1",
+                      (quizScore !== null && quizScore >= 6) ? "bg-white/10 ring-white/10" : "bg-white/5 ring-red-500/20"
+                    )}>
+                       <Award className={cn("w-12 h-12", (quizScore !== null && quizScore >= 6) ? "text-slate-400" : "text-red-400")} />
                     </div>
                     <div className="space-y-1">
                        <h2 className="text-4xl font-bold">Score: {quizScore} / {activeChapter.quiz.length}</h2>
-                       <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em]">{quizScore >= activeChapter.quiz.length / 2 ? "Félicitations !" : "Encore un petit effort"}</p>
+                       <p className={cn(
+                         "font-bold uppercase text-[10px] tracking-[0.2em]",
+                         (quizScore !== null && quizScore >= 6) ? "text-slate-400" : "text-red-400"
+                       )}>
+                         {(quizScore !== null && quizScore >= 6) ? "Félicitations ! Chapitre maîtrisé" : "Score insuffisant (< 6/10)"}
+                       </p>
                     </div>
                     <div className="w-full h-2 bg-white/10 rounded-full max-w-[200px]">
                        <div 
-                         className="h-full bg-white transition-all duration-1000 rounded-full" 
-                         style={{ width: `${(quizScore / activeChapter.quiz.length) * 100}%` }} 
+                         className={cn("h-full transition-all duration-1000 rounded-full", (quizScore !== null && quizScore >= 6) ? "bg-white" : "bg-red-500")} 
+                         style={{ width: `${((quizScore || 0) / activeChapter.quiz.length) * 100}%` }} 
                        />
                     </div>
-                          <div className="flex gap-3 w-full max-w-sm mt-4">
-                            <Button variant="secondary" onClick={() => setView('onboarding')} className="flex-1 rounded-2xl h-12 text-sm">
-                              Nouveau sujet
-                            </Button>
-                            <Button onClick={() => setView('curriculum')} className="flex-1 rounded-2xl h-12 text-sm">
-                              Continuer
-                            </Button>
-                          </div>
+                    
+                    {quizScore !== null && quizScore >= 6 ? (
+                      <div className="flex flex-col gap-3 w-full max-w-sm mt-4">
+                        <Button onClick={() => setView('curriculum')} className="w-full rounded-2xl h-12 text-sm bg-white text-slate-900 hover:bg-slate-100 font-bold shadow-lg">
+                          Retourner au Syllabus
+                        </Button>
+                        <Button variant="secondary" onClick={() => setView('onboarding')} className="w-full rounded-2xl h-12 text-sm bg-white/10 hover:bg-white/20 text-white">
+                          Choisir un Nouveau Sujet
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3 w-full max-w-sm mt-4">
+                        <p className="text-xs text-red-200/80 leading-relaxed max-w-xs mx-auto mb-2">
+                          Vous devez obtenir au moins 6/10 pour valider cette étape. Le cours et son évaluation ont été réinitialisés.
+                        </p>
+                        <Button 
+                          onClick={() => {
+                            handleSelectChapter({
+                              id: activeChapter.id,
+                              title: activeChapter.title,
+                              description: activeChapter.description
+                            });
+                          }} 
+                          className="w-full rounded-2xl h-12 text-sm bg-red-600 hover:bg-red-500 text-white font-bold shadow-lg"
+                        >
+                          Reprendre la lecture & Réessayer
+                        </Button>
+                        <Button variant="secondary" onClick={() => setView('curriculum')} className="w-full rounded-2xl h-12 text-sm bg-white/10 hover:bg-white/20 text-white border-none">
+                          Retourner au Syllabus
+                        </Button>
+                      </div>
+                    )}
                   </Card>
 
                   <div className="space-y-4">

@@ -124,6 +124,17 @@ export const FirestoreService = {
     }
   },
 
+  // Invalidate / delete chapter details
+  async deleteChapterDetails(userId: string, curriculumId: string, chapterTitle: string) {
+    const id = curriculumId.replace(/\s+/g, '_');
+    const chapterRef = doc(db, 'users', userId, 'curriculums', id, 'details', chapterTitle.replace(/\s+/g, '_'));
+    try {
+      await deleteDoc(chapterRef);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `users/${userId}/curriculums/${id}/details/${chapterTitle}`);
+    }
+  },
+
   // Update curriculum progress (completed chapters and scores)
   async updateProgress(userId: string, curriculumId: string, completedChapters: string[], chapterScores?: Record<string, number>) {
     const id = curriculumId.replace(/\s+/g, '_');
