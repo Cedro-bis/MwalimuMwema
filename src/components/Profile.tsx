@@ -82,11 +82,28 @@ export const Profile = ({ user, curriculums, onBack, onLogout, onSelectSubject }
       <main className="max-w-4xl mx-auto p-8 space-y-12">
         {/* Header */}
         <section className="flex flex-col md:flex-row items-center gap-8 bg-white p-10 rounded-[3rem] border border-black/5 shadow-sm">
-          <div className="w-24 h-24 bg-black rounded-[2rem] flex items-center justify-center text-white text-3xl font-black">
-            {user.email?.[0].toUpperCase()}
+          <div className="w-24 h-24 bg-black rounded-[2rem] flex items-center justify-center text-white text-3xl font-black overflow-hidden select-none">
+            {user.photoURL ? (
+              <img src={user.photoURL} alt="avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+            ) : (() => {
+              if (user.displayName) {
+                const firstName = user.displayName.split(' ')[0];
+                if (firstName) return firstName[0].toUpperCase();
+              }
+              if (user.email) {
+                const prefix = user.email.split('@')[0];
+                const parts = prefix.split(/[._-]/);
+                const firstName = parts[0];
+                if (firstName) return firstName[0].toUpperCase();
+                return prefix[0].toUpperCase();
+              }
+              return '?';
+            })()}
           </div>
           <div className="text-center md:text-left space-y-2 flex-1">
-            <h1 className="text-3xl font-black tracking-tighter leading-none">{user.email?.split('@')[0]}</h1>
+            <h1 className="text-3xl font-black tracking-tighter leading-none">
+              {user.displayName || user.email?.split('@')[0]}
+            </h1>
             <p className="text-black/40 font-bold uppercase text-[10px] tracking-widest">{user.email}</p>
           </div>
         </section>

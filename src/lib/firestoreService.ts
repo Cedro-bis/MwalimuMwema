@@ -33,6 +33,26 @@ export const FirestoreService = {
     }
   },
 
+  // Sync Google user profile (pre-verified and has Gmail photo capability)
+  async ensureGoogleUser(uid: string, email: string) {
+    const userRef = doc(db, 'users', uid);
+    try {
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        await setDoc(userRef, {
+          uid,
+          email,
+          createdAt: Timestamp.now(),
+          isVerified: true
+        });
+      } else if (snap.data()?.isVerified !== true) {
+        await setDoc(userRef, { isVerified: true }, { merge: true });
+      }
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `users/${uid}`);
+    }
+  },
+
   // Save verification code (temp)
   async saveVerificationCode(uid: string, code: string) {
     const ref = doc(db, 'users', uid, 'private', 'verification');

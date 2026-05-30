@@ -41,6 +41,22 @@ import { GeminiService } from './services/geminiService';
 import { cn } from './lib/utils';
 import { LogOut, User as UserIcon, MessageSquare } from 'lucide-react';
 
+const getFirstNameInitial = (user: User | null): string => {
+  if (!user) return '?';
+  if (user.displayName) {
+    const firstName = user.displayName.split(' ')[0];
+    if (firstName) return firstName[0].toUpperCase();
+  }
+  if (user.email) {
+    const prefix = user.email.split('@')[0];
+    const parts = prefix.split(/[._-]/);
+    const firstName = parts[0];
+    if (firstName) return firstName[0].toUpperCase();
+    return prefix[0].toUpperCase();
+  }
+  return '?';
+};
+
 const isTextAnswerCorrect = (userAnswer: any, correctAnswerText: string | undefined): boolean => {
   const uStr = String(userAnswer || '').trim().toLowerCase();
   const cStr = String(correctAnswerText || '').trim().toLowerCase();
@@ -452,9 +468,13 @@ const App = () => {
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setView('profile')}
-                className="w-10 h-10 bg-black rounded-full border border-black flex items-center justify-center overflow-hidden hover:scale-105 transition-transform"
+                className="w-10 h-10 bg-black text-white rounded-full border border-black flex items-center justify-center overflow-hidden hover:scale-105 transition-transform font-bold text-sm uppercase select-none"
               >
-                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="avatar" />
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                ) : (
+                  getFirstNameInitial(user)
+                )}
               </button>
               <button 
                 onClick={() => signOut(auth)}
