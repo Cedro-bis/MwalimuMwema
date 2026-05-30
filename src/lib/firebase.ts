@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -11,6 +11,19 @@ export const auth = getAuth(app);
 setPersistence(auth, browserSessionPersistence).catch((err) => {
   console.error("Auth persistence error:", err);
 });
+
+// Gracefully enable Firestore offline indexedDB persistence to buffer edits and allows reading existing caches
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn("Firestore indexedDB persistence failed: Multiple tabs open.");
+    } else if (err.code === 'unimplemented') {
+      console.warn("Firestore indexedDB persistence is not supported by this browser.");
+    } else {
+      console.warn("Firestore indexedDB persistence error:", err);
+    }
+  });
+}
 
 export enum OperationType {
   CREATE = 'create',
@@ -39,6 +52,14 @@ interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errObj = error as any;
+  const errMsg = String(errObj?.message || error).toLowerCase();
+  const errCode = String(errObj?.code || '').toLowerCase();
+  
+  // Strict check if it's a security rule / permissions denial (as required by Firestore Integration skill)
+  const isPermission = errMsg.includes('permission') || errMsg.includes('insufficient') || 
+                       errCode.includes('permission') || errCode.includes('unauthenticated');
+
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -55,6 +76,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  if (isPermission) {
+    console.error('Firestore Permission Error: ', JSON.stringify(errInfo));
+    throw new Error(JSON.stringify(errInfo));
+  } else {
+    // Quiet offline or network notifications: print as warnings instead of breaking the flow
+    console.warn(`[Firestore Non-Permission Event] Operation: ${operationType} on ${path || 'unknown'}. Info:`, error);
+    throw error instanceof Error ? error : new Error(String(error));
+  }
 }

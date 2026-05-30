@@ -89,8 +89,32 @@ export const GeminiService = {
    * Generates the detailed content for a specific chapter, including YouTube search suggestions and a quiz.
    */
   async generateChapterDetails(level: Level, subject: string, chapterTitle: string): Promise<Partial<Chapter>> {
+    const lvl = String(level).toLowerCase();
+    let promptQuizRatio = "";
+
+    if (lvl.includes("prim")) {
+      promptQuizRatio = "Le quiz doit contenir exactement 10 questions au total : exactement 9 questions de type choix multiples (type: 'mcq') et exactement 1 question explicative ouverte (type: 'text').";
+    } else if (lvl.includes("coll")) {
+      promptQuizRatio = "Le quiz doit contenir exactement 10 questions au total : exactement 8 questions de type choix multiples (type: 'mcq') et exactement 2 questions explicatives ouvertes (type: 'text').";
+    } else if (lvl.includes("lyc")) {
+      promptQuizRatio = "Le quiz doit contenir exactement 10 questions au total : exactement 7 questions de type choix multiples (type: 'mcq') et exactement 3 questions explicatives ouvertes (type: 'text').";
+    } else if (lvl.includes("univ") || lvl.includes("mast")) {
+      promptQuizRatio = "Le quiz doit contenir exactement 10 questions au total : exactement 5 questions de type choix multiples (type: 'mcq') et exactement 5 questions explicatives ouvertes (type: 'text').";
+    } else if (lvl.includes("approf")) {
+      promptQuizRatio = "Le quiz doit contenir exactement 10 questions au total : exactement 10 questions de type explicatives ouvertes (type: 'text') et absolument 0 question à choix multiple (type: 'mcq').";
+    } else {
+      promptQuizRatio = "Le quiz doit contenir exactement 10 questions au total : exactement 8 questions de type choix multiples (type: 'mcq') et exactement 2 questions explicatives ouvertes (type: 'text').";
+    }
+
+    // Dynamic cache busting seed to ensure questions are completely different if generated multiple times
+    const dynamicSeed = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
     const text = await callGeminiWithRetry({
-      contents: `Génère le contenu détaillé pour le chapitre "${chapterTitle}" dans la matière "${subject}" au niveau ou classe/promotion "${level}".
+      contents: `Génère le contenu détaillé du cours pour le chapitre "${chapterTitle}" dans la matière "${subject}" au niveau ou classe/promotion "${level}".
+      [UNIQUE_SESSION_SEED: ${dynamicSeed}]
+      
+      RÈGLE D'UNICITÉ CRITIQUE: Génère un jeu de questions de quiz totalement uniques, nouvelles, inédites et différentes des sessions précédentes pour évaluer l'étudiant. Variez les notions testées.
+
       CONTRÔLE DE FORMAT CRITIQUE:
       1. Le "content" doit être un cours approfondi au format Markdown pur. 
       2. INCLURE SYSTÉMATIQUEMENT des exemples concrets, des cas d'utilisation réels et des blocs de code (avec syntax highlighting) si le sujet est technique ou scientifique.
@@ -102,12 +126,13 @@ export const GeminiService = {
       7. Utilise des titres de section clairs (ex: ## 1. Introduction).
       8. Assure-toi qu'il y a des doubles retours à la ligne entre chaque paragraphe et chaque titre pour un rendu optimal.
       9. Ne mets pas tout le texte en gras. Réserve le gras pour les termes techniques importants uniquement.
+      
       Inclus aussi:
       - exactes 2 ou 3 objectifs spécifiques de ce chapitre (objectives), rédigées simplement pour l'étudiant de cette classe.
       - 3 suggestions de titres de vidéos YouTube pertinentes.
       - Un quiz complet de 10 questions pour parcourir tout le chapitre en profondeur :
-        - Les 9 premières questions (index 0 à 8) doivent être des questions à choix multiple (QCM) avec 4 options (type: 'mcq').
-        - La 10ème question (index 9) doit être une question ouverte où l'utilisateur écrit sa réponse (type: 'text'). Pour cette question ouverte, laissez 'options' sous forme de tableau vide, mettez correctAnswerIndex à -1, et mettez la réponse textuelle courte exacte attendue (un mot, formule simple ou clé) dans 'correctAnswerText'.`,
+        - ${promptQuizRatio}
+        - Pour chaque question ouverte de type 'text' (question explicative), l'étudiant doit expliquer. Vous devez obligatoirement laisser le champ 'options' sous forme de tableau vide [], mettre correctAnswerIndex à -1, et dans 'correctAnswerText' mettre la liste de 3 ou 4 mots-clés essentiels attendus dans la réponse (séparés par des virgules), ou une explication clé concise contenant ces notions clefs. L'explication et la correction détaillées doivent être motivantes et instructives.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -148,7 +173,7 @@ export const GeminiService = {
                   },
                   correctAnswerText: { 
                     type: Type.STRING, 
-                    description: "La réponse écrite courte correcte pour le type 'text' (ou mot clé de réponse). Mettez un texte vide pour le type 'mcq'." 
+                    description: "La réponse écrite courte correcte pour le type 'text' (ou liste de mots-clés séparés par des virgules). Mettez un texte vide pour le type 'mcq'." 
                   },
                   explanation: { type: Type.STRING }
                 },
@@ -175,7 +200,7 @@ export const GeminiService = {
    */
   async askAi(level: string, subject: string, chapterTitle: string, lessonContent: string, question: string): Promise<string> {
     const text = await callGeminiWithRetry({
-      contents: `Tu es MwalimuMwema, un tuteur IA expert. Un étudiant suit le cours "${subject}" au niveau "${level}".
+      contents: `Tu es MwalimuMwema, un tuteur IA expert et chaleureux. Un étudiant suit le cours "${subject}" au niveau "${level}".
       Chapitre actuel : "${chapterTitle}".
       
       CONTENU DU CHAPITRE :
@@ -183,10 +208,11 @@ export const GeminiService = {
       ${lessonContent}
       ---
       
-      RÈGLES STRICTES :
-      1. Tu ne dois répondre QU'AUX QUESTIONS portant sur le contenu du chapitre ci-dessus.
-      2. Si la question de l'étudiant est hors-sujet ou ne concerne pas ce chapitre spécifique, réponds poliment : "Désolé, je suis uniquement programmé pour vous aider sur le chapitre '${chapterTitle}'. Veuillez poser une question en rapport avec le contenu de la leçon."
-      3. Tes réponses doivent être pédagogiques, précises et basées sur le texte fourni.
+      DIRECTIVES POUR LES RÉPONSES :
+      1. Aide l'étudiant à comprendre en profondeur le chapitre actuel : "${chapterTitle}".
+      2. Réponds de façon pédagogique, claire et étayée de manière chaleureuse en français.
+      3. Si la question de l'étudiant dépasse légèrement le strict cadre textuel du chapitre, utilise ton expertise pour y répondre précisément tout en rattachant tes explications au sujet principal du chapitre.
+      4. Si la question est totalement hors-sujet par rapport au cours, réoriente gentiment l'étudiant vers le chapitre "${chapterTitle}" tout en donnant un mot d'explication poli.
       
       QUESTION DE L'ÉTUDIANT : "${question}"`,
     });

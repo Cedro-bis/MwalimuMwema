@@ -41,6 +41,42 @@ import { GeminiService } from './services/geminiService';
 import { cn } from './lib/utils';
 import { LogOut, User as UserIcon, MessageSquare } from 'lucide-react';
 
+const isTextAnswerCorrect = (userAnswer: any, correctAnswerText: string | undefined): boolean => {
+  const uStr = String(userAnswer || '').trim().toLowerCase();
+  const cStr = String(correctAnswerText || '').trim().toLowerCase();
+  if (!uStr || !cStr) return false;
+
+  // 1. Direct or reciprocal substring match
+  if (uStr.includes(cStr) || cStr.includes(uStr)) {
+    return true;
+  }
+
+  // 2. Split by separator (commas, semicolons, slashes, or dashes) to extract individual keyword terms
+  const terms = cStr.split(/[;,/-]+/).map(t => t.trim()).filter(t => t.length > 2);
+  if (terms.length > 0) {
+    const matchedCount = terms.filter(term => uStr.includes(term)).length;
+    if (matchedCount >= 1 && uStr.length >= 8) {
+      return true;
+    }
+  }
+
+  // 3. Fallback word-by-word intersection check:
+  // Split both into individual words, keeping only meaningful words (length > 3) and filtering out French grammatical stop words.
+  const stopWords = ['avec', 'dans', 'pour', 'plus', 'sans', 'sous', 'vers', 'chez', 'sont', 'être', 'elle', 'elles', 'nous', 'vous', 'leur', 'leurs', 'cette', 'ces', 'mais', 'donc', 'parce', 'comme', 'alors'];
+  const userWords = uStr.split(/[\s,.'";?!()-]+/).map(w => w.trim()).filter(w => w.length > 3 && !stopWords.includes(w));
+  const correctWords = cStr.split(/[\s,.'";?!()-]+/).map(w => w.trim()).filter(w => w.length > 3 && !stopWords.includes(w));
+
+  if (correctWords.length > 0) {
+    const matchedWords = correctWords.filter(cw => userWords.some(uw => uw.includes(cw) || cw.includes(uw)));
+    const threshold = Math.max(1, Math.ceil(correctWords.length * 0.45)); // Need ~45% of the keywords matched
+    if (matchedWords.length >= threshold) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 // --- Improved Components ---
 
 const Button = ({ 
@@ -186,8 +222,10 @@ const App = () => {
 
     const historyId = `${curriculum.level}_${curriculum.subject}`.replace(/\s+/g, '_');
     
-    // Sync to Cloud
-    FirestoreService.updateProgress(user.uid, historyId, completedChapters, chapterScores);
+    // Sync to Cloud safely
+    FirestoreService.updateProgress(user.uid, historyId, completedChapters, chapterScores).catch(err => {
+      console.warn("[APP] Cloud progress sync deferred/failed (offline mode):", err);
+    });
 
     const newHistory: HistoryItem[] = [
       {
@@ -228,7 +266,12 @@ const App = () => {
     
     // Try to load from cloud first
     const curriculumId = `${curriculum.level}_${curriculum.subject}`.replace(/\s+/g, '_');
-    const cloudDetails = await FirestoreService.getChapterDetails(user.uid, curriculumId, chapter.title);
+    let cloudDetails = null;
+    try {
+      cloudDetails = await FirestoreService.getChapterDetails(user.uid, curriculumId, chapter.title);
+    } catch (error) {
+      console.warn("[APP] Could not fetch chapter details from cloud (offline mode):", error);
+    }
     
     // Mark as started/being studied if not already
     if (!completedChapters.includes(chapter.id)) {
@@ -286,9 +329,7 @@ const App = () => {
     activeChapter.quiz.forEach((q, idx) => {
       const userAns = answers[idx];
       if (q.type === 'text') {
-        const uStr = String(userAns || '').trim().toLowerCase();
-        const cStr = String(q.correctAnswerText || '').trim().toLowerCase();
-        if (cStr && (uStr.includes(cStr) || cStr.includes(uStr))) {
+        if (isTextAnswerCorrect(userAns, q.correctAnswerText)) {
           score++;
         }
       } else {
@@ -1083,7 +1124,7 @@ const App = () => {
                               }}
                               className="w-full px-5 py-4 border-2 border-slate-200 rounded-2xl focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all outline-none text-sm font-bold bg-slate-50 text-slate-900"
                             />
-                            <p className="text-[10px] text-slate-400 font-medium">Réponse courte (un ou deux mots attendus)</p>
+                            <p className="text-[10px] text-amber-700/90 font-semibold bg-amber-50 rounded-lg px-3 py-1 inline-block border border-amber-100">Question explicative : S'il vous plaît, expliquez et rédigez votre raisonnement ou concept clé.</p>
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 gap-3 sm:pl-12">
@@ -1209,9 +1250,7 @@ const App = () => {
                       {activeChapter.quiz.map((q, i) => {
                         const isCorrect = (() => {
                           if (q.type === 'text') {
-                            const uStr = String(quizAnswers[i] || '').trim().toLowerCase();
-                            const cStr = String(q.correctAnswerText || '').trim().toLowerCase();
-                            return cStr && (uStr.includes(cStr) || cStr.includes(uStr));
+                            return isTextAnswerCorrect(quizAnswers[i], q.correctAnswerText);
                           } else {
                             const correctIdx = q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : q.correctAnswer;
                             return quizAnswers[i] !== undefined && Number(quizAnswers[i]) === Number(correctIdx);
