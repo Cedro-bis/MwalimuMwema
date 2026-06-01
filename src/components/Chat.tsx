@@ -81,21 +81,44 @@ export const Chat = ({ level, subject, chapterTitle, lessonContent }: ChatProps)
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={cn(
-                "flex flex-col max-w-[85%]",
+                "flex flex-col w-full max-w-[85%] md:max-w-[80%] overflow-hidden",
                 m.role === 'user' ? "ml-auto items-end" : "mr-auto items-start"
               )}
             >
               <div className={cn(
-                "p-4 rounded-2xl text-sm leading-relaxed",
+                "p-4 rounded-2xl text-sm leading-relaxed w-full border overflow-hidden break-words",
                 m.role === 'user' 
-                  ? "bg-black text-white rounded-tr-none" 
-                  : "bg-amber-50 text-amber-900 rounded-tl-none border border-amber-100"
+                  ? "bg-black text-white border-black rounded-tr-none" 
+                  : "bg-amber-50 text-amber-900 border-amber-100 rounded-tl-none"
               )}>
                 <div className={cn(
-                  "prose prose-sm max-w-none",
+                  "prose prose-sm max-w-none w-full overflow-hidden break-words",
                   m.role === 'user' ? "prose-invert" : "text-amber-900"
                 )}>
-                  <ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap break-words leading-relaxed">{children}</p>,
+                      a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="underline hover:opacity-80 break-all">{children}</a>,
+                      ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 my-2 break-words">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-4 space-y-1 my-2 break-words">{children}</ol>,
+                      li: ({ children }) => <li className="break-words">{children}</li>,
+                      code: ({ className, children, ...props }: any) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        const isBlock = !!(match || String(children).includes('\n'));
+                        return isBlock ? (
+                          <pre className="max-w-full overflow-x-auto bg-black/10 p-3 rounded-lg text-xs font-mono my-2 break-all whitespace-pre-wrap leading-tight">
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          </pre>
+                        ) : (
+                          <code className={cn("px-1 py-0.5 rounded text-xs font-mono break-all font-semibold", m.role === 'user' ? "bg-white/10" : "bg-black/5")} {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+                    }}
+                  >
                     {m.content}
                   </ReactMarkdown>
                 </div>
