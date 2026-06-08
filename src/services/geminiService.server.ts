@@ -381,7 +381,33 @@ export const GeminiService = {
     });
 
     const result = JSON.parse(text || "[]") as ScienceNews[];
-    saveToCache(cacheKey, result);
-    return result;
+    const normalizedResult = result.map((item: any) => {
+      if (!item.items) return item;
+      return {
+        ...item,
+        items: item.items.map((newsItem: any) => {
+          if (!newsItem.resources) return newsItem;
+          return {
+            ...newsItem,
+            resources: newsItem.resources.map((resource: any) => {
+              let url = resource.url;
+              if (resource.type === "video") {
+                url = `https://www.youtube.com/results?search_query=${encodeURIComponent(resource.title)}`;
+              } else if (resource.type === "book") {
+                url = `https://www.google.com/search?tbm=bks&q=${encodeURIComponent(resource.title)}`;
+              } else if (resource.type === "article") {
+                url = `https://scholar.google.com/scholar?q=${encodeURIComponent(resource.title)}`;
+              }
+              return {
+                ...resource,
+                url
+              };
+            })
+          };
+        })
+      };
+    });
+    saveToCache(cacheKey, normalizedResult);
+    return normalizedResult;
   }
 };
