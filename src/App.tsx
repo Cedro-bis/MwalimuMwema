@@ -169,6 +169,8 @@ const App = () => {
   const [quizAnswers, setQuizAnswers] = useState<(number | string)[]>([]);
   const [quote, setQuote] = useState({ text: "L'éducation est l'arme la plus puissante pour changer le monde.", author: "Nelson Mandela" });
   
+  const [error, setError] = useState<string | null>(null);
+
   // Handle user initialization when user is set or verified
   useEffect(() => {
     const initUser = async () => {
@@ -264,6 +266,7 @@ const App = () => {
     if (!subject.trim() || !user) return;
     setLoading(true);
     setLoadingMessage('Génération de votre programme sur mesure...');
+    setError(null);
     try {
       const finalLevel = subLevel ? `${level} (${subLevel})` : level;
       const data = await GeminiService.generateCurriculum(finalLevel, subject);
@@ -273,8 +276,9 @@ const App = () => {
       setView('curriculum');
       // Save to cloud
       await FirestoreService.saveCurriculum(user.uid, data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to generate curriculum:", error);
+      setError(error.message || "Erreur lors de la génération. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }
@@ -318,6 +322,7 @@ const App = () => {
 
     setLoading(true);
     setLoadingMessage(`Rédaction du chapitre : ${chapter.title}...`);
+    setError(null);
     try {
       const details = await GeminiService.generateChapterDetails(curriculum.level, curriculum.subject, chapter.title);
       const updatedChapter = { ...chapter, ...details };
@@ -329,8 +334,9 @@ const App = () => {
       // Save details to cloud
       await FirestoreService.saveChapterDetails(user.uid, curriculumId, updatedChapter);
       setView('lesson');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch chapter details:", error);
+      setError(error.message || "Erreur lors de la génération du contenu du chapitre.");
     } finally {
       setLoading(false);
     }
@@ -401,13 +407,15 @@ const App = () => {
 
   const handleFetchNews = async (domain?: string) => {
     setLoading(true);
+    setError(null);
     try {
       const data = await GeminiService.generateScienceNews(domain);
       setScienceNews(data);
       setView('news');
       if (domain) setNewsSearchQuery('');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch science news:", error);
+      setError(error.message || "Erreur lors de la récupération des actualités.");
     } finally {
       setLoading(false);
     }
@@ -491,6 +499,14 @@ const App = () => {
       </header>
 
       <main className="pt-32 pb-24 px-12 max-w-7xl mx-auto min-h-screen">
+        {error && (
+          <div className="mb-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded-2xl flex items-center justify-between">
+            <span className="font-bold flex items-center gap-2">
+              <span className="text-xl">⚠️</span> {error}
+            </span>
+            <button onClick={() => setError(null)} className="text-red-700 hover:opacity-70 font-bold p-2">✕</button>
+          </div>
+        )}
         <AnimatePresence mode="wait">
           
           {authLoading ? (

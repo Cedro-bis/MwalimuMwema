@@ -8,10 +8,12 @@ async function getTransporter() {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
 
   if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+    // If using Gmail, use secure 'smtps' protocol or service 'gmail'
+    const isGmail = SMTP_HOST.includes('smtp.gmail.com');
     transporter = nodemailer.createTransport({
       host: SMTP_HOST,
-      port: Number(SMTP_PORT) || 587,
-      secure: Number(SMTP_PORT) === 465, // true for 465, false for other ports
+      port: isGmail ? 465 : (Number(SMTP_PORT) || 587),
+      secure: isGmail ? true : (Number(SMTP_PORT) === 465), // true for 465
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
@@ -38,12 +40,12 @@ async function getTransporter() {
 export const EmailService = {
   async sendVerificationEmail(to: string, code: string, appUrl?: string) {
     try {
-      const emailTransporter = await getTransporter();
+      let emailTransporter = await getTransporter();
       
       const baseUrl = appUrl || process.env.APP_URL || 'http://localhost:3000';
       const magicLink = `${baseUrl}/?code=${code}`;
 
-      const info = await emailTransporter.sendMail({
+      const mailOptions = {
         from: '"Mwalimu Mwema 🎓" <no-reply@mwalimumwema.com>', // sender address
         to: to,
         subject: "Mwalimu Mwema - Votre connexion d'un clic", // Subject line
@@ -73,7 +75,40 @@ export const EmailService = {
             </div>
           </div>
         `,
-      });
+      };
+
+      let info;
+      try {
+        info = await emailTransporter.sendMail(mailOptions);
+      } catch (err: any) {
+        if (err.message.includes('534-5.7.9') || err.message.toLowerCase().includes('application-specific password required')) {
+           console.error("\n" + "=".repeat(80));
+           console.error("🚨 GMAIL AUTHENTICATION ERROR: App Password Required 🚨");
+           console.error("=".repeat(80));
+           console.error("You are trying to use your regular Gmail password. Google requires an 'App Password'.");
+           console.error("To fix this:");
+           console.error("1. Go to your Google Account -> Security (https://myaccount.google.com/security)");
+           console.error("2. Enable 2-Step Verification if not already enabled.");
+           console.error("3. Search for 'App passwords' in the Security search bar.");
+           console.error("4. Create a new App password (select 'Mail' and 'Other').");
+           console.error("5. Update your AI Studio Secrets (or .env file) to use the 16-character App Password.");
+           console.error("=".repeat(80) + "\n");
+        }
+        
+        console.error("Initial SMTP failed, falling back to Ethereal:", err.message);
+        // Fallback to ethereal email if standard smtp fails
+        const testAccount = await nodemailer.createTestAccount();
+        emailTransporter = nodemailer.createTransport({
+          host: "smtp.ethereal.email",
+          port: 587,
+          secure: false, // true for 465, false for other ports
+          auth: {
+            user: testAccount.user, // generated ethereal user
+            pass: testAccount.pass, // generated ethereal password
+          },
+        });
+        info = await emailTransporter.sendMail(mailOptions);
+      }
 
       console.log("Message sent: %s", info.messageId);
       // Preview only available when sending through an Ethereal account
@@ -81,7 +116,7 @@ export const EmailService = {
       if (testMessageUrl) {
         console.log("Preview URL: %s", testMessageUrl);
       }
-      return { success: true, previewUrl: testMessageUrl };
+      return { success: true, previewUrl: testMessageUrl || magicLink };
     } catch (error) {
       console.error("Error sending verification email:", error);
       throw error;

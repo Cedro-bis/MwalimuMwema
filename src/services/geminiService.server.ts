@@ -100,28 +100,55 @@ function saveToCache<T>(key: string, data: T): void {
 /**
  * Helper to call Gemini with retries for transient RPC/XHR errors
  */
-async function callGeminiWithRetry(params: any, maxRetries = 2): Promise<string> {
+async function callGeminiWithRetry(params: any, maxRetries = 4): Promise<string> {
   let attempts = 0;
   while (attempts <= maxRetries) {
     try {
+      // Alternate models on retries to bypass capacity issues on specific models
+      const modelToUse = attempts % 2 === 0 ? "gemini-3.5-flash" : "gemini-3.1-flash-lite";
+      
       const response = await ai.models.generateContent({
         ...params,
-        model: "gemini-3.5-flash", // Use current reliable model alias
+        model: modelToUse, 
       });
       if (!response.text) throw new Error("Réponse vide de l'IA (Empty text)");
       return response.text;
     } catch (error: any) {
       attempts++;
-      const isTransient = error?.message?.includes("Rpc failed") || error?.message?.includes("xhr error") || error?.code === 500;
+      const errorMessage = error?.message || "";
+      const isTransient = errorMessage.includes("Rpc failed") || 
+                          errorMessage.includes("xhr error") || 
+                          error?.code === 500 || 
+                          error?.code === 503 ||
+                          error?.code === 429 ||
+                          error?.status === "UNAVAILABLE" ||
+                          error?.status === "RESOURCE_EXHAUSTED" ||
+                          errorMessage.includes("429") ||
+                          errorMessage.includes("503") ||
+                          errorMessage.includes("high demand") ||
+                          errorMessage.includes("Try again later") ||
+                          errorMessage.includes("quota"); // add quota as transient if it's per minute quota
+
       if (isTransient && attempts <= maxRetries) {
-        console.warn(`Gemini RPC error on attempt ${attempts}. Retrying in ${attempts}s...`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        // Exponential backoff for 503 high demand: 2s, 4s, 8s, 16s
+        const backoffMs = Math.pow(2, attempts) * 1000;
+        console.warn(`Gemini API error on attempt ${attempts} (${error?.status || errorMessage}). Retrying in ${backoffMs/1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
         continue;
       }
+      
+      // If it's a 503 or 429 and we exhausted retries, throw a better error message in french
+      if (error?.code === 503 || error?.status === "UNAVAILABLE" || errorMessage.includes("high demand")) {
+         throw new Error("L'intelligence artificielle est actuellement surchargée. Veuillez réessayer dans quelques instants.");
+      }
+      if (error?.code === 429 || error?.status === "RESOURCE_EXHAUSTED" || errorMessage.includes("429") || errorMessage.includes("quota")) {
+         throw new Error("La limite d'utilisation de l'IA a été atteinte. Veuillez patienter un moment avant de réessayer.");
+      }
+      
       throw error;
     }
   }
-  throw new Error("Échec après plusieurs tentatives");
+  throw new Error("Échec de connexion à l'IA après plusieurs tentatives. Veuillez réessayer plus tard.");
 }
 
 export const GeminiService = {
