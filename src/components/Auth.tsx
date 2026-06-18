@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -7,8 +7,9 @@ import {
   User,
   signOut
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { FirestoreService } from '../lib/firestoreService';
+import { doc, getDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, Loader2, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -48,7 +49,11 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
           const response = await fetch("/api/sendVerificationEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: normalizedEmail, code })
+            body: JSON.stringify({ 
+              email: normalizedEmail, 
+              code,
+              appUrl: window.location.origin
+            })
           });
           const result = await response.json();
           if (result.previewUrl) setPreviewUrl(result.previewUrl);
@@ -72,7 +77,11 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
         const response = await fetch("/api/sendVerificationEmail", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: normalizedEmail, code })
+            body: JSON.stringify({ 
+              email: normalizedEmail, 
+              code,
+              appUrl: window.location.origin
+            })
         });
         const result = await response.json();
         if (result.previewUrl) setPreviewUrl(result.previewUrl);
@@ -118,12 +127,10 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
           setStep('success');
           setVerificationCode(''); // Effacer le code après validation
           
-          setTimeout(() => {
-            if (auth.currentUser) {
-              setEmail(''); // Clear email too
-              onAuthSuccess(auth.currentUser);
-            }
-          }, 2000);
+          if (auth.currentUser) {
+            setEmail(''); // Clear email too
+            onAuthSuccess(auth.currentUser);
+          }
         } else {
           setError('Utilisateur non identifié. Veuillez vous reconnecter.');
         }
@@ -144,6 +151,35 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
     setEmail('');
     setPassword('');
   };
+
+  useEffect(() => {
+    // Check for magic link auto-verification
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCode = urlParams.get('code');
+    if (!urlCode) return;
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setLoading(true);
+        try {
+          const docRef = doc(db, 'users', currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists() && docSnap.data().verificationCode === urlCode) {
+             await FirestoreService.setUserVerified(currentUser.uid);
+             setStep('success');
+             onAuthSuccess(currentUser);
+             // Nettoyer l'URL
+             window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (e) {
+          console.error("Magic link verification failed", e);
+        }
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   if (step === 'success') {
     return (

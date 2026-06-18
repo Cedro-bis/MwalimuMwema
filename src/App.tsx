@@ -173,11 +173,14 @@ const App = () => {
   useEffect(() => {
     const initUser = async () => {
       if (user) {
-        setAuthLoading(true);
+        // Optimisation: On ne bloque plus complétement l'UI (le dashboard peut s'afficher pendant que l'historique charge)
         console.log(`[APP] Initializing data for user: ${user.email}`);
         try {
-          await FirestoreService.ensureUser(user.uid, user.email!);
-          const cloudHistory = await FirestoreService.getUserCurriculums(user.uid);
+          // Exécuter en parallèle pour diviser le temps de chargement par deux
+          const [_, cloudHistory] = await Promise.all([
+            FirestoreService.ensureUser(user.uid, user.email!),
+            FirestoreService.getUserCurriculums(user.uid)
+          ]);
           setHistory(cloudHistory.map(c => ({
             id: `${c.level}_${c.subject}`.replace(/\s+/g, '_'),
             curriculum: c,

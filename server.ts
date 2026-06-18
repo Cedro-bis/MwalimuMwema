@@ -65,11 +65,11 @@ async function startServer() {
   // API Route for sending verification emails
   app.post("/api/sendVerificationEmail", async (req, res) => {
     try {
-      const { email, code } = req.body;
+      const { email, code, appUrl } = req.body;
       if (!email || !code) {
         return res.status(400).json({ error: "Email and code are required" });
       }
-      const result = await EmailService.sendVerificationEmail(email, code);
+      const result = await EmailService.sendVerificationEmail(email, code, appUrl);
       res.json(result);
     } catch (error: any) {
       console.error("Error sending verification email:", error);
