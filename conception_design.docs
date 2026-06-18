@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Conception Technique & Design - Mwalimu Mwema</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            margin: 40px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #78350f;
+            border-bottom: 2px solid #f59e0b;
+            padding-bottom: 10px;
+            font-size: 26px;
+            margin-top: 30px;
+        }
+        h2 {
+            color: #92400e;
+            border-bottom: 1px solid #fef3c7;
+            padding-bottom: 6px;
+            font-size: 20px;
+            margin-top: 25px;
+        }
+        h3 {
+            color: #b45309;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        ul, ol {
+            margin: 10px 0 10px 20px;
+            padding-left: 20px;
+            font-size: 14px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #fef3c7;
+            color: #78350f;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .code-block {
+            background-color: #f1f5f9;
+            border-left: 4px solid #b45309;
+            padding: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .wireframe-box {
+            background-color: #fafaf9;
+            border: 1px dashed #78350f;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            margin: 15px 0;
+            line-height: 1.4;
+            border-radius: 6px;
+        }
+        .note-box {
+            background-color: #fef3c7;
+            border-left: 4px solid #d97706;
+            padding: 12px;
+            font-size: 13px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px double #78350f; padding-bottom: 20px;">
+        <h1 style="margin: 0; color: #78350f; font-size: 32px; border-bottom: none;">DOSSIER DE CONCEPTION TECHNIQUE &amp; DESIGN</h1>
+        <p style="font-size: 18px; color: #b45309; font-weight: bold; margin: 10px 0 0 0;">PLATEFORME ÉDUCATIVE INTELLIGENTE : MWALIMU MWEMA ("LE BON ENSEIGNANT")</p>
+        <p style="font-size: 12px; color: #64748b; margin-top: 5px;"><em>Prêt pour l'importation directe dans Google Docs - Charte Professionnelle d'Ingénierie Logicielle</em></p>
+    </div>
+
+    <!-- 1. LIVRABLES FONCTIONNELS ET UX -->
+    <h1>1. LIVRABLES FONCTIONNELS ET UX</h1>
+    <p>Cette section détaille les principes d'expérience utilisateur (UX) et d'interface graphique (UI) appliqués pour concevoir un environnement éducatif hautement productif, chaleureux, accessible et harmonieux.</p>
+
+    <h2>A. Wireframes (Agencement Structurel de l'Écran principal)</h2>
+    <p>L'agencement de la plateforme utilise une structure en bento-grid pour regrouper de façon logique l'activité d'évaluation, le parcours actuel et la veille d'actualité scientifique.</p>
+    
+    <div class="wireframe-box">
++----------------------------------------------------------------------------+
+|  [Mwalimu Mwema 🎓]                                   [Espace Étudiant 👤] |
++----------------------------------------------------------------------------+
+|                                                                            |
+|  +-----------------------------------+  +--------------------------------+ |
+|  | MATIÈRES & NIVEAUX D'ÉTUDES       |  | DEGRÉ DE PROGRESSION ACTUEL    | |
+|  |                                   |  |                                | |
+|  |  * Niveau : [ Université    v ]   |  |  * Bases de Données (90% [|||])| |
+|  |  * Matière: [ Algorithmique v ]   |  |  * Physique Moderne (45% [|  ])| |
+|  |                                   |  |                                | |
+|  |  [ GÉNÉRER MON PARCOURS UNIQUE ]  |  |  [ Reprendre la Leçon Active ] | |
+|  +-----------------------------------+  +--------------------------------+ |
+|                                                                            |
+|  +-----------------------------------------------------------------------+ |
+|  | L'ACTUALITÉ ET DECOUVERTES SCIENTIFIQUES MONDIALES RECENTES           | |
+|  |  +-----------------------+ +-----------------------+ +---------------+ | |
+|  |  | IA & Neurologie       | | Exploration Physique  | | Climatologie  | | |
+|  |  +-----------------------+ +-----------------------+ +---------------+ | |
+|  +-----------------------------------------------------------------------+ |
++----------------------------------------------------------------------------+
+    </div>
+
+    <h2>B. Maquettes Graphiques &amp; Palette de Couleurs (Mockups)</h2>
+    <p>La charte graphique de <strong>Mwalimu Mwema</strong> a été minutieusement élaborée pour rompre avec la froideur technologique habituelle des outils d’Intelligence Artificielle. Elle favorise plutôt un environnement propice à la sérénité et à la mémorisation :</p>
+    <ul>
+        <li><strong>Fonds et Canevas :</strong> Combinaison de blanc pur (<code>#FFFFFF</code>) et de gris plume chaleureux (<code>#F8FAFC</code> ou <code>#F1F5F9</code>) favorisant de longues plages de lecture confortable.</li>
+        <li><strong>Palette Ambrée Académique :</strong> Accents issus du blé et du parchemin (<code>bg-amber-50</code>, <code>text-amber-900</code>, <code>border-amber-100</code>). Cette couleur organique induit un sentiment d'accompagnement humain et de rigueur didactique classique.</li>
+        <li><strong>Ombrages et Bordures :</strong> Contours très fins gris/noir translucide (<code>border border-black/10</code>) et angles très polis (<code>rounded-2xl</code>) pour adoucir les blocs d'informations et structurer les cartes bento.</li>
+    </ul>
+
+    <h2>C. Prototypes Animés (Interactions Visuelles)</h2>
+    <p>Afin de préserver la concentration et de rythmer la progression de l'étudiant, les transitions graphiques respectent une courbe d'animation douce, organique et logique :</p>
+    <ul>
+        <li><strong>Transitions de Montage (Mount Flow) :</strong> Toutes les nouvelles pages ou modules se chargent via un fondu de glissement vertical doux géré par <code>motion/react</code> (opacité 0 à 1, déplacement d'axe Y de 10px à 0px).</li>
+        <li><strong>Retour d'Effort Magnétique (Hover Effects) :</strong> Les cartes éducatives et boutons s'élèvent de façon à donner une impression de relief et d'attrait (translation de -2px et assombrissement subtil de la bordure).</li>
+        <li><strong>Indication des Réponses (Quiz Interactions) :</strong> Lors de la validation d'un choix de quiz, l'option s'illumine instantanément en vert émeraude (réponse validée) ou en rouge corail (réponse fausse) avec affichage immédiat de l'explication logique didactique.</li>
+    </ul>
+
+    <h2>D. User Flows (Flux logique des Parcours Étudiant)</h2>
+    <p>Le parcours ci-dessous illustre l'enchaînement des écrans et actions depuis la connexion sécurisée jusqu'à la phase d'évaluation par l'IA :</p>
+    <ol>
+        <li><strong>Identification :</strong> L'étudiant se connecte de manière fiable via l'authentification native s'appuyant sur son e-mail et son mot de passe.</li>
+        <li><strong>Sécurisation par OTP :</strong> Validation par code secret unique envoyé par e-mail afin de s'assurer de l'authenticité de l'identité de l'élève.</li>
+        <li><strong>Sélection du parcours :</strong> Choix du niveau scolaire et de la thématique d'intérêt générale sur le tableau de bord Bento-Grid.</li>
+        <li><strong>Consultation de la leçon :</strong> Affichage fluide du cours magistral en Markdown d'excellence avec support direct de ressources bibliographiques validées, vidéos YouTube et documentation.</li>
+        <li><strong>Validation et Entraînement :</strong> Questionnaire d'auto-évaluation (Quiz interactif de 10 questions) combiné à un agent de tutorat IA ouvert en temps réel.</li>
+    </ol>
+
+    <!-- 2. LIVRABLES TECHNIQUES ET ARCHITECTURE -->
+    <h1>2. LIVRABLES TECHNIQUES ET ARCHITECTURE</h1>
+    <p>Notre architecture logicielle est basée sur un couplage étanche à haute performance unissant un Client React Single-Page Application (SPA) et un Serveur API de filtrage et d'aide à l'évaluation.</p>
+
+    <h2>A. Diagramme d'Architecture (Réseau &amp; Systèmes)</h2>
+    <div class="wireframe-box">
+  [Navigateur Client React] <-- (HTTPS & TLS / Port : 3000) --> [Serveur Express API Gateway]
+                                                                     |
+                                              +----------------------+----------------------+
+                                              | Sans fuite d'API Key | Routage RPC Chiffré  |
+                                              v                                             v
+                                  [Firebase Auth & Firestore]                  [Google Gemini API Engine]
+    </div>
+
+    <h2>B. Modèle Physique des Données (MPD - Cloud Firestore NoSQL)</h2>
+    <p>Le schéma de persistance NoSQL ci-dessous décrit les relations et documents stockés de façon hautement disponible dans Firestore :</p>
+    <div class="code-block">
+/users (Collection principale)
+   └─ [userId] (Document)
+         ├─ uid: String (Clé et ID d'utilisateur Firebase)
+         ├─ email: String (Identifiant électronique)
+         ├─ createdAt: Timestamp (Date de création de l'espace personnel)
+         ├─ isVerified: Boolean (Statut d'approbation d'adresse)
+         │
+         └─ /curriculums (Sous-collection d'apprentissage)
+               └─ [curriculumId] (ID : Classe + Matière)
+                     ├─ level: String (Ex: "Université")
+                     ├─ subject: String (Ex: "Réseaux Répartis")
+                     ├─ completedChapters: Array [String] (Chapitres complétés)
+                     ├─ chapterScores: Map { [chapId]: Number } (Scores d'évaluations)
+                     │
+                     └─ /details (Sous-collection de cours)
+                           └─ [chapterId] (Fiche du cours en cache)
+                                 ├─ content: String (Cours complet rédigé en Markdown riche)
+                                 ├─ youtubeLinks: Array [ { title: String, url: String } ]
+                                 └─ quiz: Array [ { question: String, options: Array, correctAnswerIndex: Number } ]
+    </div>
+
+    <h2>C. Dictionnaire des données de la Plateforme</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Champ technique</th>
+                <th>Type</th>
+                <th>Origine et Collection</th>
+                <th>Explication &amp; Rôle fonctionnel</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>uid</strong></td>
+                <td>String</td>
+                <td><code>/users</code></td>
+                <td>ID d'identification unique fourni par le module Firebase Authentication.</td>
+            </tr>
+            <tr>
+                <td><strong>email</strong></td>
+                <td>String</td>
+                <td><code>/users</code></td>
+                <td>Adresse e-mail valide ayant servi à créer l'inscription.</td>
+            </tr>
+            <tr>
+                <td><strong>isVerified</strong></td>
+                <td>Boolean</td>
+                <td><code>/users</code></td>
+                <td>Indicateur binaire spécifiant si l'élève a complété sa vérification OTP par courriel.</td>
+            </tr>
+            <tr>
+                <td><strong>completedChapters</strong></td>
+                <td>Array [String]</td>
+                <td><code>/users/curriculums</code></td>
+                <td>Liste exhaustive des identifiants des chapitres lus et validés avec succès par l'élève.</td>
+            </tr>
+            <tr>
+                <td><strong>content</strong></td>
+                <td>String (MD)</td>
+                <td><code>/users/curriculums/details</code></td>
+                <td>Le cours magistral de niveau d'excellence généré dynamiquement au format Markdown.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>D. Spécifications des Endpoints de l'API REST</h2>
+    <p>Le serveur d'interface de Mwalimu Mwema dialogue à travers 4 branches d'API REST hautement sécurisées :</p>
+    
+    <h3>1. Génération de Syllabus : <code>POST /api/generateCurriculum</code></h3>
+    <p>Génère la structure thématique détaillée (5 à 10 chapitres d'apprentissage et objectifs globaux).</p>
+    <div class="code-block">
+// Payload d'entrée
+{ "level": "Université", "subject": "Sciences de la Nutrition" }
+
+// Réponse serveur (JSON encapsulé)
+{
+  "objectives": ["Comprendre les micronutriments", "Analyser le métabolisme digestif"],
+  "chapters": [ { "id": "chap_1", "title": "Introduction à l'Enzymologie", "description": "..." } ]
+}
+    </div>
+
+    <h3>2. Génération de Contenu de Cours : <code>POST /api/generateChapterDetails</code></h3>
+    <p>Fouille thématique approfondie générant un cours magistral, des évaluations (10 questions inédites), des suggestions bibliographiques Google Books, ainsi que des sources de vidéos complémentaires via YouTube.</p>
+
+    <h3>3. Dialogue avec l'Assistant : <code>POST /api/askAi</code></h3>
+    <p>Ouvre un canal transactionnel de discussion sémantique guidé par le contexte thématique de la leçon en cours d'affichage.</p>
+
+    <!-- 3. LIVRABLES DE SÉCURITÉ (Secure SDLC) -->
+    <h1>3. LIVRABLES DE SÉCURITÉ (Secure SDLC)</h1>
+    <p>La sécurité et l'isolement applicatif sont ancrés au cœur du processus de développement (Secure SDLC) de Mwalimu Mwema.</p>
+
+    <h2>A. Modélisation des Menaces et Risques d'Exploitation (Threat Model)</h2>
+    <ul>
+        <li><strong>Vol d'Inférence / Exposition de clés API :</strong> La clé d'interrogation <code>GEMINI_API_KEY</code> est strictement confinée côté serveur. Le navigateur client ne possède aucune visibilité ni moyen d'accès physique à cette signature secrète.</li>
+        <li><strong>Fermeture et Encadrement des Prompts (Prompt Jailbreak) :</strong> Toutes les requêtes vers l'IA sont pré-mises en forme par des consignes d'administration système strictes, cloisonnant le modèle de langage dans sa posture de "Professeur bienveillant, académique et pédagogique en langue française", écartant toute instruction malveillante externe.</li>
+        <li><strong>Contournement ou Modification de données scolaires :</strong> Grâce à des <strong>Règles de Sécurité de documents Firestore (Security Rules)</strong> rigoureuses, aucune transaction d'écriture ou de lecture ne peut s'exécuter sur un document d'identité étudiant <code>/users/userId</code> si l'uid de l'appelant connecté est différent ou manquant.</li>
+    </ul>
+
+    <h2>B. Matrice d'Autorisation et de Flux Réseau</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Origine du Flux</th>
+                <th>Destination</th>
+                <th>Protocole / Port</th>
+                <th>Nature fonctionnelle</th>
+                <th>État de Protection</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Navigateur Élève</td>
+                <td>Algorithme de routage Express</td>
+                <td>HTTPS (TCP/3000)</td>
+                <td>Affichage de l'actualité et requêtes de cours</td>
+                <td>Chiffré de bout en bout (TLS 1.3)</td>
+            </tr>
+            <tr>
+                <td>Navigateur Élève</td>
+                <td>Base Cloud / Auth Firebase</td>
+                <td>HTTPS (TCP/443)</td>
+                <td>Connexion directe et enregistrement des scores</td>
+                <td>Validation directe par SDK SDK Firebase</td>
+            </tr>
+            <tr>
+                <td>Serveur d'API Express</td>
+                <td>API Google Gemini Engine</td>
+                <td>HTTPS (TCP/443)</td>
+                <td>Calcul et génération de savoir pédagogique</td>
+                <td>Connexion privée, Secret stocké de manière sécurisée</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>C. Matrice d'Accréditations et des Droits d'Accès (RBAC)</h2>
+    <p>Afin de limiter la portée des droits d'accès à l'information sensible, la plateforme répartit les ressources selon trois groupes d'acteurs de manière rigide :</p>
+    <ul>
+        <li><strong>Utilisateur / Visiteur Anonyme :</strong> Accès restreint uniquement à la page de connexion sémantique. Tout appel sélectif de données applicatives est activement rejeté.</li>
+        <li><strong>Étudiant Enregistré :</strong> Détient des privilèges exclusifs de lecture et de création de ses propres chapitres de cours et progressions (confiné à son seul nœud identitaire <code>/users/{auth.uid}</code>).</li>
+        <li><strong>Administrateur de l'Infrastructure :</strong> Accès total aux outils de supervision générale scolaires et détection d'erreurs (logs systémiques).</li>
+    </ul>
+
+    <div class="note-box">
+        <strong>Note d'Importation Google Docs :</strong> Ce fichier a été structuré avec des balises sémantiques universelles (H1, H2, tableaux standard et polices web sécurisées). Pour le copier-coller ou l'ouvrir directement dans Google Docs, utilisez simplement la fonction <em>Ouvrir un fichier</em> &gt; <em>Transférer</em>, ou effectuez un <em>Copier-Coller complet</em> depuis votre navigateur : la mise en page, les couleurs chaleureuses, les bordures d'évaluation et les polices s'adapteront à la perfection.
+    </div>
+
+</body>
+</html>

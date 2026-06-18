@@ -5,6 +5,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GeminiService } from "./src/services/geminiService.server";
+import { EmailService } from "./src/services/emailService.server";
 
 async function startServer() {
   const app = express();
@@ -58,6 +59,21 @@ async function startServer() {
     } catch (error: any) {
       console.error("Error generating science news on server:", error);
       res.status(500).json({ error: error.message || "Internal Server Error" });
+    }
+  });
+
+  // API Route for sending verification emails
+  app.post("/api/sendVerificationEmail", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+      if (!email || !code) {
+        return res.status(400).json({ error: "Email and code are required" });
+      }
+      const result = await EmailService.sendVerificationEmail(email, code);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error sending verification email:", error);
+      res.status(500).json({ error: "Failed to send verification email" });
     }
   });
 

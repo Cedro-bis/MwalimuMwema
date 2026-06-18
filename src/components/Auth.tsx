@@ -22,6 +22,7 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
   const [step, setStep] = useState<'auth' | 'verification' | 'success'>('auth');
   const [verificationCode, setVerificationCode] = useState('');
   const [actualCode, setActualCode] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const generateCode = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -43,6 +44,15 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
           const code = generateCode();
           setActualCode(code);
           await FirestoreService.saveVerificationCode(userCredential.user.uid, code);
+          
+          const response = await fetch("/api/sendVerificationEmail", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: normalizedEmail, code })
+          });
+          const result = await response.json();
+          if (result.previewUrl) setPreviewUrl(result.previewUrl);
+
           setStep('verification');
           setLoading(false);
           setPassword(''); // Confidentialité: effacer le mot de passe
@@ -59,8 +69,13 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
         setActualCode(code);
         await FirestoreService.saveVerificationCode(userCredential.user.uid, code);
         
-        // Simulation d'envoi de mail
-        console.log(`[SIMULATION] Email de vérification envoyé à ${normalizedEmail}. Code: ${code}`);
+        const response = await fetch("/api/sendVerificationEmail", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: normalizedEmail, code })
+        });
+        const result = await response.json();
+        if (result.previewUrl) setPreviewUrl(result.previewUrl);
         
         setPassword(''); // Confidentialité
         setStep('verification');
@@ -177,14 +192,24 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
               placeholder="Saisir le code ici"
               className="w-full text-center py-4 bg-transparent border-b-2 border-black/10 text-3xl font-black tracking-[0.5em] focus:border-black outline-none transition-all placeholder:text-black/20 placeholder:tracking-normal placeholder:font-bold placeholder:text-base mb-2"
             />
-            {step === 'verification' && (
-              <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest mt-2">
-                Le code est : <span className="text-black">{actualCode}</span> (Simulation mail)
-              </p>
-            )}
           </div>
 
           <AnimatePresence>
+            {previewUrl && (
+              <motion.div className="flex flex-col gap-2 p-4 bg-amber-50 text-amber-900 rounded-2xl text-xs font-semibold border border-amber-100">
+                <div className="flex items-center gap-2 font-bold mb-1">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  Mode Développeur Actif
+                </div>
+                <p>
+                  Aucun serveur d'envoi e-mail (SMTP) n'est configuré. Pour contourner cela pendant vos tests, veuillez cliquer sur le lien ci-dessous pour lire l'e-mail simulé contenant votre code :
+                </p>
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="text-amber-700 underline font-bold mt-1 break-all">
+                  Ouvrir l'e-mail simulé
+                </a>
+              </motion.div>
+            )}
+            
             {error && (
               <motion.div className="flex items-center gap-3 p-4 bg-red-50 text-red-900 rounded-2xl text-xs font-bold border border-red-100">
                 <AlertCircle className="w-4 h-4 shrink-0" />
