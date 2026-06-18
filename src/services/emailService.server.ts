@@ -116,7 +116,7 @@ export const EmailService = {
       if (testMessageUrl) {
         console.log("Preview URL: %s", testMessageUrl);
       }
-      return { success: true, previewUrl: testMessageUrl || magicLink };
+      return { success: true, previewUrl: testMessageUrl || undefined };
     } catch (error) {
       console.error("Error sending verification email:", error);
       throw error;
