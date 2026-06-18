@@ -184,9 +184,12 @@ export const FirestoreService = {
   // Delete all user data
   async deleteAccount(userId: string) {
     const userRef = doc(db, 'users', userId);
+    const verificationRef = doc(db, 'users', userId, 'private', 'verification');
     try {
-      // Note: Subcollections like 'curriculums' should be handled with a batch or cloud function in production,
-      // but for this demo we'll just delete the user document.
+      // First delete private verification document if it exists
+      await deleteDoc(verificationRef).catch(() => {});
+      
+      // Delete the main user profile
       await deleteDoc(userRef);
     } catch (e) {
       handleFirestoreError(e, OperationType.DELETE, `users/${userId}`);

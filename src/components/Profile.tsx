@@ -25,19 +25,21 @@ interface ProfileProps {
 
 export const Profile = ({ user, curriculums, onBack, onLogout, onSelectSubject }: ProfileProps) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [deletePassword, setDeletePassword] = React.useState("");
+  const [deleteError, setDeleteError] = React.useState("");
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm("Êtes-vous absolument sûr de vouloir supprimer votre compte ? Cette action est irréversible et toutes vos données seront effacées.")) {
+  const confirmDeleteAccount = async () => {
+    if (!deletePassword) {
+      setDeleteError("Veuillez saisir votre mot de passe.");
       return;
     }
 
-    const password = window.prompt("Veuillez saisir votre mot de passe pour confirmer la suppression :");
-    if (!password) return;
-
     setIsDeleting(true);
+    setDeleteError("");
     try {
       if (user.email) {
-        const credential = EmailAuthProvider.credential(user.email, password);
+        const credential = EmailAuthProvider.credential(user.email, deletePassword);
         await reauthenticateWithCredential(user, credential);
         await FirestoreService.deleteAccount(user.uid);
         await deleteUser(user);
@@ -46,15 +48,18 @@ export const Profile = ({ user, curriculums, onBack, onLogout, onSelectSubject }
     } catch (error: any) {
       console.error("Account deletion error:", error);
       if (error.code === 'auth/network-request-failed') {
-        alert("Erreur réseau (auth/network-request-failed). Si vous êtes dans l'aperçu ou sur téléphone, l'iFrame bloque l'action sécurisée. Veuillez ouvrir l'application dans un nouvel onglet ou désactiver les bloqueurs de contenu.");
-      } else if (error.code === 'auth/wrong-password') {
-        alert("Mot de passe incorrect.");
+        setDeleteError("Erreur réseau. Désactivez vos bloqueurs de contenu ou ouvrez l'app dans un nouvel onglet.");
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        setDeleteError("Mot de passe incorrect.");
       } else {
-        alert("Erreur lors de la suppression du compte. Veuillez réessayer plus tard.");
+        setDeleteError("Erreur lors de la suppression. Veuillez réessayer plus tard.");
       }
-    } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleDeleteAccountClick = () => {
+    setShowDeleteConfirm(true);
   };
 
   const getProgressColor = (percent: number) => {
@@ -177,13 +182,52 @@ export const Profile = ({ user, curriculums, onBack, onLogout, onSelectSubject }
             <p className="text-xs text-rose-900/60 font-medium leading-relaxed max-w-lg">
               La suppression de votre compte effacera toutes vos progressions, vos certificats virtuels et vos données personnelles de manière définitive.
             </p>
-            <button 
-              onClick={handleDeleteAccount}
-              disabled={isDeleting}
-              className="flex items-center gap-3 px-8 py-4 bg-rose-500 text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-rose-600 transition-all disabled:opacity-50"
-            >
-              {isDeleting ? "Suppression..." : <><Trash2 className="w-4 h-4" /> Supprimer mon compte</>}
-            </button>
+            {!showDeleteConfirm ? (
+              <button 
+                onClick={handleDeleteAccountClick}
+                className="flex items-center gap-3 px-8 py-4 bg-rose-500 text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-rose-600 transition-all disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" /> Supprimer mon compte
+              </button>
+            ) : (
+              <div className="bg-white p-6 rounded-2xl border border-rose-200 mt-4 max-w-sm">
+                <p className="font-bold text-rose-900 mb-4 text-sm tracking-tight text-center">Êtes-vous sûr ? Entrez votre mot de passe pour confirmer.</p>
+                <input 
+                  type="password" 
+                  autoFocus
+                  placeholder="Mot de passe" 
+                  className="w-full px-4 py-3 rounded-xl border border-rose-200 bg-rose-50/50 mb-4 outline-none focus:border-rose-500 font-bold placeholder:text-rose-900/30"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                       confirmDeleteAccount();
+                    }
+                  }}
+                />
+                
+                {deleteError && (
+                  <p className="text-xs font-bold text-rose-600 mb-4 text-center">{deleteError}</p>
+                )}
+                
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => { setShowDeleteConfirm(false); setDeleteError(""); }}
+                    disabled={isDeleting}
+                    className="flex-1 py-3 text-xs font-bold uppercase tracking-widest text-black/40 hover:text-black hover:bg-black/5 rounded-xl transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button 
+                    onClick={confirmDeleteAccount}
+                    disabled={isDeleting || !deletePassword}
+                    className="flex-1 py-3 bg-rose-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-rose-600 transition-all disabled:opacity-75"
+                  >
+                    {isDeleting ? "En cours..." : "Confirmer"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </section>
       </main>
