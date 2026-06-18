@@ -33,6 +33,29 @@ export const FirestoreService = {
     }
   },
 
+  async updateUserPhoto(uid: string, photoDataUrl: string) {
+    const userRef = doc(db, 'users', uid);
+    try {
+      await setDoc(userRef, { photoDataUrl }, { merge: true });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `users/${uid}`);
+    }
+  },
+
+  async getUserProfile(uid: string) {
+    const userRef = doc(db, 'users', uid);
+    try {
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        return snap.data();
+      }
+      return null;
+    } catch (e) {
+      handleFirestoreError(e, OperationType.READ, `users/${uid}`);
+      return null;
+    }
+  },
+
   // Sync Google user profile (pre-verified and has Gmail photo capability)
   async ensureGoogleUser(uid: string, email: string) {
     const userRef = doc(db, 'users', uid);

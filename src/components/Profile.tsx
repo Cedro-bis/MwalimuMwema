@@ -7,9 +7,11 @@ import {
   BookOpen, 
   Settings, 
   ChevronRight,
-  LogOut
+  LogOut,
+  Camera,
+  Loader2
 } from 'lucide-react';
-import { User, signOut, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { User, signOut, deleteUser, EmailAuthProvider, reauthenticateWithCredential, updateProfile } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { FirestoreService } from '../lib/firestoreService';
 import { Curriculum } from '../types';
@@ -28,6 +30,61 @@ export const Profile = ({ user, curriculums, onBack, onLogout, onSelectSubject }
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [deletePassword, setDeletePassword] = React.useState("");
   const [deleteError, setDeleteError] = React.useState("");
+  const [isUploadingPhoto, setIsUploadingPhoto] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const [customPhotoUrl, setCustomPhotoUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    FirestoreService.getUserProfile(user.uid).then(profile => {
+      if (profile?.photoDataUrl) {
+        setCustomPhotoUrl(profile.photoDataUrl);
+      }
+    });
+  }, [user]);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const bitmap = await self.createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 256;
+      let width = bitmap.width;
+      let height = bitmap.height;
+
+      if (width > height && width > MAX_SIZE) {
+        height *= MAX_SIZE / width;
+        width = MAX_SIZE;
+      } else if (height > MAX_SIZE) {
+        width *= MAX_SIZE / height;
+        height = MAX_SIZE;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Could not get canvas context");
+      
+      ctx.drawImage(bitmap, 0, 0, width, height);
+      
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+      await FirestoreService.updateUserPhoto(user.uid, compressedDataUrl);
+      setCustomPhotoUrl(compressedDataUrl);
+      
+    } catch (err) {
+      console.error("Error uploading photo:", err);
+      // Optional: Add a toast/error message here if desired
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const confirmDeleteAccount = async () => {
     if (!deletePassword) {
@@ -87,23 +144,43 @@ export const Profile = ({ user, curriculums, onBack, onLogout, onSelectSubject }
       <main className="max-w-4xl mx-auto p-8 space-y-12">
         {/* Header */}
         <section className="flex flex-col md:flex-row items-center gap-8 bg-white p-10 rounded-[3rem] border border-black/5 shadow-sm">
-          <div className="w-24 h-24 bg-black rounded-[2rem] flex items-center justify-center text-white text-3xl font-black overflow-hidden select-none">
-            {user.photoURL ? (
-              <img src={user.photoURL} alt="avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-            ) : (() => {
-              if (user.displayName) {
-                const firstName = user.displayName.split(' ')[0];
-                if (firstName) return firstName[0].toUpperCase();
-              }
-              if (user.email) {
-                const prefix = user.email.split('@')[0];
-                const parts = prefix.split(/[._-]/);
-                const firstName = parts[0];
-                if (firstName) return firstName[0].toUpperCase();
-                return prefix[0].toUpperCase();
-              }
-              return '?';
-            })()}
+          <div className="relative group">
+            <div className="w-24 h-24 bg-black rounded-[2rem] flex items-center justify-center text-white text-3xl font-black overflow-hidden select-none relative">
+              {(customPhotoUrl || user.photoURL) ? (
+                <img src={customPhotoUrl || user.photoURL || undefined} alt="avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+              ) : (() => {
+                if (user.displayName) {
+                  const firstName = user.displayName.split(' ')[0];
+                  if (firstName) return firstName[0].toUpperCase();
+                }
+                if (user.email) {
+                  const prefix = user.email.split('@')[0];
+                  const parts = prefix.split(/[._-]/);
+                  const firstName = parts[0];
+                  if (firstName) return firstName[0].toUpperCase();
+                  return prefix[0].toUpperCase();
+                }
+                return '?';
+              })()}
+              
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer"
+              >
+                {isUploadingPhoto ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-white" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
+              </div>
+            </div>
+            <input 
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handlePhotoUpload}
+            />
           </div>
           <div className="text-center md:text-left space-y-2 flex-1">
             <h1 className="text-3xl font-black tracking-tighter leading-none">

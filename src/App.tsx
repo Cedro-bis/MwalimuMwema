@@ -151,6 +151,7 @@ const SUB_LEVELS: Record<string, string[]> = {
 
 const App = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [customPhotoUrl, setCustomPhotoUrl] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [view, setView] = useState<'onboarding' | 'curriculum' | 'lesson' | 'quiz' | 'news' | 'profile'>('onboarding');
   const [level, setLevel] = useState<Level>('Lycée');
@@ -179,9 +180,10 @@ const App = () => {
         console.log(`[APP] Initializing data for user: ${user.email}`);
         try {
           // Exécuter en parallèle pour diviser le temps de chargement par deux
-          const [_, cloudHistory] = await Promise.all([
+          const [_, cloudHistory, profile] = await Promise.all([
             FirestoreService.ensureUser(user.uid, user.email!),
-            FirestoreService.getUserCurriculums(user.uid)
+            FirestoreService.getUserCurriculums(user.uid),
+            FirestoreService.getUserProfile(user.uid)
           ]);
           setHistory(cloudHistory.map(c => ({
             id: `${c.level}_${c.subject}`.replace(/\s+/g, '_'),
@@ -190,6 +192,12 @@ const App = () => {
             chapterScores: c.chapterScores || {},
             lastUpdated: c.lastAccessed?.toMillis() || Date.now()
           })));
+          
+          if (profile?.photoDataUrl) {
+            setCustomPhotoUrl(profile.photoDataUrl);
+          } else {
+             setCustomPhotoUrl(null);
+          }
         } catch (err) {
           console.error("[APP] Initialization error:", err);
         } finally {
@@ -481,8 +489,8 @@ const App = () => {
                 onClick={() => setView('profile')}
                 className="w-10 h-10 bg-black text-white rounded-full border border-black flex items-center justify-center overflow-hidden hover:scale-105 transition-transform font-bold text-sm uppercase select-none"
               >
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                {(customPhotoUrl || user.photoURL) ? (
+                  <img src={customPhotoUrl || user.photoURL || undefined} alt="avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
                   getFirstNameInitial(user)
                 )}
