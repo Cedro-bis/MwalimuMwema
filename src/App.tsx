@@ -36,6 +36,7 @@ import { AuthUI } from './components/Auth';
 import { Chat } from './components/Chat';
 import { Profile } from './components/Profile';
 import { Calculator } from './components/Calculator';
+import { LessonControls } from './components/LessonControls';
 import { FirestoreService } from './lib/firestoreService';
 import { GeminiService } from './services/geminiService';
 import { cn } from './lib/utils';
@@ -467,7 +468,7 @@ const App = () => {
       {user && isMathSubject && (view === 'lesson' || view === 'curriculum') && <Calculator />}
 
       {/* --- Header --- */}
-      <header className="fixed top-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl z-50 px-10 flex items-center justify-between border-b border-black">
+      <header className="fixed top-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl z-50 px-10 flex items-center justify-between border-b border-black print:hidden">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('onboarding')}>
           <h1 className="text-2xl font-black text-black tracking-tighter">
             MwalimuMwema
@@ -976,9 +977,9 @@ const App = () => {
               key="lesson"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="grid grid-cols-1 md:grid-cols-12 gap-6"
+              className="grid grid-cols-1 md:grid-cols-12 gap-6 print:block"
             >
-              <div className="md:col-span-12 mb-2">
+              <div className="md:col-span-12 mb-2 print:hidden">
                 <button 
                   onClick={() => setView('curriculum')}
                   className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors font-bold text-xs uppercase tracking-widest"
@@ -988,11 +989,13 @@ const App = () => {
               </div>
 
               {/* Main Content Card */}
-              <Card className="md:col-span-8 p-12 flex flex-col gap-10 h-fit border-none shadow-none">
+              <Card className="md:col-span-8 p-12 flex flex-col gap-10 h-fit border-none shadow-none print:hidden">
                 <div className="space-y-4">
                     <h1 className="text-[36px] font-black text-black tracking-tighter leading-[1.1]">
                       {activeChapter.title}
                     </h1>
+
+                    <LessonControls title={activeChapter.title} content={activeChapter.content || ""} />
 
                     {/* Chapter objectives display */}
                     <div className="pt-2 pb-5 border-b border-black/5">
@@ -1025,7 +1028,7 @@ const App = () => {
                   </ReactMarkdown>
                 </div>
 
-                <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col items-center gap-6">
+                <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col items-center gap-6 print:hidden">
                   <div className="flex w-full justify-between gap-4">
                     {curriculum && (() => {
                       const currentIndex = curriculum.chapters.findIndex(c => c.id === activeChapter.id);
@@ -1073,7 +1076,7 @@ const App = () => {
               </Card>
 
               {/* Resources Card (Bento right column) */}
-              <div className="md:col-span-4 space-y-6">
+              <div className="md:col-span-4 space-y-6 print:hidden">
                 <Card className="p-6">
                   <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2 uppercase text-xs tracking-widest">
                     <Youtube className="text-red-600 w-5 h-5" /> Vidéos suggérées
@@ -1120,6 +1123,28 @@ const App = () => {
                   lessonContent={activeChapter.content || ''}
                 />
               </div>
+              
+              {/* Print-only Full Curriculum */}
+              {curriculum && (
+                <div className="hidden print:block col-span-12 w-full text-black">
+                  <div className="text-center mb-16 mt-8">
+                    <h1 className="text-5xl font-black mb-4 tracking-tighter">{curriculum.subject}</h1>
+                    <h2 className="text-3xl font-bold text-black/60">{curriculum.topic}</h2>
+                    <p className="mt-4 text-xl font-medium">Niveau: {curriculum.level}</p>
+                  </div>
+                  
+                  {curriculum.chapters.map((chapter, idx) => (
+                    <div key={idx} className="mb-16 pb-8 border-b border-black/10" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                      <h3 className="text-4xl font-black mb-6 tracking-tighter">
+                        Chapitre {idx + 1}: {chapter.title}
+                      </h3>
+                      <div className="prose prose-slate prose-lg max-w-none prose-headings:font-black prose-p:font-medium prose-p:leading-relaxed">
+                        <ReactMarkdown>{chapter.content || "*Contenu non généré*"}</ReactMarkdown>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 
