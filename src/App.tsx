@@ -38,7 +38,7 @@ import { Profile } from './components/Profile';
 import { Calculator } from './components/Calculator';
 import { LessonControls } from './components/LessonControls';
 import { FirestoreService } from './lib/firestoreService';
-import { GeminiService } from './services/geminiService';
+import { GeminiService } from './lib/geminiService';
 import { cn } from './lib/utils';
 import { LogOut, User as UserIcon, MessageSquare } from 'lucide-react';
 
@@ -1126,10 +1126,9 @@ const App = () => {
               
               {/* Print-only Full Curriculum */}
               {curriculum && (
-                <div className="hidden print:block col-span-12 w-full text-black">
+                <div id="full-curriculum-pdf" className="hidden print:block col-span-12 w-full text-black bg-white p-12">
                   <div className="text-center mb-16 mt-8">
                     <h1 className="text-5xl font-black mb-4 tracking-tighter">{curriculum.subject}</h1>
-                    <h2 className="text-3xl font-bold text-black/60">{curriculum.topic}</h2>
                     <p className="mt-4 text-xl font-medium">Niveau: {curriculum.level}</p>
                   </div>
                   

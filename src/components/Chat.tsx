@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, MessageSquare, User } from 'lucide-react';
-import { GeminiService } from '../services/geminiService';
+import { GeminiService } from '../lib/geminiService';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';

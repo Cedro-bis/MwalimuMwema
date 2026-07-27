@@ -51,7 +51,7 @@ export const FirestoreService = {
       }
       return null;
     } catch (e) {
-      handleFirestoreError(e, OperationType.READ, `users/${uid}`);
+      handleFirestoreError(e, OperationType.GET, `users/${uid}`);
       return null;
     }
   },

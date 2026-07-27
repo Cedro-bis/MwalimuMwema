@@ -4,8 +4,8 @@ dotenv.config();
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GeminiService } from "./src/services/geminiService.server";
-import { EmailService } from "./src/services/emailService.server";
+import { GeminiService } from "./src/lib/geminiService.server";
+import { EmailService } from "./src/lib/emailService.server";
 
 async function startServer() {
   const app = express();

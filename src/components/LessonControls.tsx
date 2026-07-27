@@ -90,17 +90,29 @@ export function LessonControls({ title, content }: LessonControlsProps) {
 
     const fullText = `${title}. ${cleanText}`;
     
-    const utterance = new SpeechSynthesisUtterance(fullText);
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-    utterance.lang = 'fr-FR';
-    utterance.rate = 0.95;
+    // Chunk text by sentences to avoid speech synthesis length limits
+    const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
     
-    utterance.onend = () => { setIsPlaying(false); setIsPaused(false); };
-    utterance.onerror = () => { setIsPlaying(false); setIsPaused(false); };
+    sentences.forEach((sentence, index) => {
+      const utterance = new SpeechSynthesisUtterance(sentence.trim());
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      utterance.lang = 'fr-FR';
+      utterance.rate = 0.95;
+      
+      if (index === sentences.length - 1) {
+        utterance.onend = () => { setIsPlaying(false); setIsPaused(false); };
+      }
+      utterance.onerror = (e) => { 
+        console.error("Speech error:", e);
+        setIsPlaying(false); 
+        setIsPaused(false); 
+      };
+      
+      window.speechSynthesis.speak(utterance);
+    });
     
-    window.speechSynthesis.speak(utterance);
     setIsPlaying(true);
     setIsPaused(false);
   };
@@ -125,18 +137,64 @@ export function LessonControls({ title, content }: LessonControlsProps) {
     }
   };
 
-  const downloadPDF = () => {
-    window.print();
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const downloadPDF = async () => {
+    setIsDownloading(true);
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+      const element = document.getElementById('full-curriculum-pdf');
+      if (element) {
+        // Clone the element to render it properly
+        const clone = element.cloneNode(true) as HTMLElement;
+        clone.classList.remove('hidden', 'print:block');
+        clone.style.display = 'block';
+        clone.style.width = '800px'; // Set a fixed width for consistent rendering
+        
+        // append to body temporarily
+        const container = document.createElement('div');
+        container.appendChild(clone);
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+        document.body.appendChild(container);
+        
+        const opt: any = {
+          margin:       15,
+          filename:     `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_cours.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, useCORS: true },
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        await html2pdf().set(opt).from(clone).save();
+        
+        document.body.removeChild(container);
+      } else {
+        window.print();
+      }
+    } catch (e) {
+      console.error("PDF generation error:", e);
+      window.print(); // fallback
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
     <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 print:hidden">
       <button
         onClick={downloadPDF}
-        className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl text-sm font-bold shadow-sm border border-black/5 hover:border-black/20 hover:scale-105 transition-all text-black"
+        disabled={isDownloading}
+        className={cn(
+          "flex items-center gap-2 px-4 py-2 bg-white rounded-xl text-sm font-bold shadow-sm border transition-all text-black",
+          isDownloading ? "border-slate-300 opacity-70 cursor-wait" : "border-black/5 hover:border-black/20 hover:scale-105"
+        )}
       >
-        <Download className="w-4 h-4" />
-        <span className="hidden sm:inline">Télécharger PDF</span>
+        <Download className={cn("w-4 h-4", isDownloading && "animate-pulse")} />
+        <span className="hidden sm:inline">
+          {isDownloading ? "Préparation PDF..." : "Télécharger PDF"}
+        </span>
       </button>
 
       <div className="w-px h-8 bg-slate-200 mx-1"></div>
