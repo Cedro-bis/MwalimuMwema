@@ -1,0 +1,31 @@
+# MwalimuMwema — Robots.txt
+# Plateforme d'apprentissage IA | https://mwalimu-mwema.web.app/
+
+# Autoriser tous les robots (Google, Bing, ChatGPT, Perplexity, Claude, etc.)
+User-agent: *
+Allow: /
+
+# Bloquer les zones privées (authentification, API backend)
+Disallow: /api/
+Disallow: /__/
+
+# Autoriser explicitement les bots d'IA/LLM pour le GEO
+User-agent: GPTBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+# Sitemap
+Sitemap: https://mwalimu-mwema.web.app/sitemap.xml

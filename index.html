@@ -1,13 +1,363 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mwalimu Mwema</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<html lang="fr" dir="ltr">
 
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- =====================================================
+         SEO FONDAMENTAL
+    ====================================================== -->
+  <title>MwalimuMwema — Cours Personnalisés | Apprendre sans Limites</title>
+  <meta name="description"
+    content="MwalimuMwema est une plateforme d'apprentissage alimentée par l'IA Gemini. Générez en secondes un programme de cours sur mesure, pour tous niveaux : Primaire, Lycée, Université, Master. Apprenez n'importe quelle matière, sans limites." />
+  <meta name="keywords"
+    content="apprentissage IA, cours personnalisé, intelligence artificielle éducation, curriculum IA, MwalimuMwema, tuteur IA, apprendre en ligne, cours gratuit, Gemini, formation en ligne, e-learning IA, programme scolaire" />
+  <meta name="author" content="MwalimuMwema" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="color-scheme" content="light" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <link rel="canonical" href="https://mwalimu-mwema.web.app/" />
+
+  <!-- =====================================================
+         OPEN GRAPH (Facebook, LinkedIn, WhatsApp, Discord)
+    ====================================================== -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="MwalimuMwema" />
+  <meta property="og:title" content="MwalimuMwema — Cours IA Personnalisés | Apprendre sans Limites" />
+  <meta property="og:description"
+    content="Générez un programme d'apprentissage complet et personnalisé en quelques secondes grâce à l'IA. Tous niveaux, toutes matières. Gratuit." />
+  <meta property="og:url" content="https://mwalimu-mwema.web.app/" />
+  <meta property="og:image" content="https://mwalimu-mwema.web.app/og-image.png" />
+  <meta property="og:image:alt" content="MwalimuMwema — Plateforme d'apprentissage propulsée par l'IA" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="fr_FR" />
+
+  <!-- =====================================================
+         TWITTER / X CARD
+    ====================================================== -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@MwalimuMwema" />
+  <meta name="twitter:creator" content="@MwalimuMwema" />
+  <meta name="twitter:title" content="MwalimuMwema — Cours IA Personnalisés" />
+  <meta name="twitter:description"
+    content="Générez un curriculum complet sur n'importe quelle matière en quelques secondes. Powered by Gemini AI." />
+  <meta name="twitter:image" content="https://mwalimu-mwema.web.app/og-image.png" />
+  <meta name="twitter:image:alt" content="MwalimuMwema — Apprendre sans limites" />
+
+  <!-- =====================================================
+         PWA MANIFEST & ICONS
+    ====================================================== -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <!-- =====================================================
+         GOOGLE FONTS — Déjà chargé via CSS mais pré-connecté ici
+    ====================================================== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- =====================================================
+         AEO — SPEAKABLE (Voice Search / Assistants vocaux)
+         Indique aux moteurs quelles parties sont "lisibles à voix haute"
+    ====================================================== -->
+  <meta name="speakable" content="true" />
+
+  <!-- =====================================================
+         GEO + AEO — STRUCTURED DATA JSON-LD
+         Ces schémas sont la base de la visibilité dans :
+         - Google Featured Snippets (AEO)
+         - ChatGPT, Gemini, Perplexity citations (GEO)
+         - Google Knowledge Panel (SEO)
+    ====================================================== -->
+
+  <!-- Schema 1: Organization — Autorité de la marque -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://mwalimu-mwema.web.app/#organization",
+      "name": "MwalimuMwema",
+      "alternateName": "Mwalimu Mwema",
+      "description": "MwalimuMwema (« Le Bon Enseignant » en swahili) est une plateforme d'apprentissage innovante propulsée par l'intelligence artificielle Gemini de Google. Elle génère des programmes de cours personnalisés pour tous les niveaux scolaires et universitaires, couvrant toutes les matières.",
+      "url": "https://mwalimu-mwema.web.app/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://mwalimu-mwema.web.app/og-image.png",
+        "width": 1200,
+        "height": 630
+      },
+      "foundingDate": "2024",
+      "knowsAbout": [
+        "Intelligence Artificielle",
+        "E-learning",
+        "Génération de curricula",
+        "Apprentissage personnalisé",
+        "Éducation numérique",
+        "Tuteur virtuel IA",
+        "Formation en ligne"
+      ],
+      "inLanguage": ["fr", "sw"],
+      "sameAs": []
+    }
+    </script>
+
+  <!-- Schema 2: WebSite — Pour le Search Box Google -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://mwalimu-mwema.web.app/#website",
+      "name": "MwalimuMwema",
+      "url": "https://mwalimu-mwema.web.app/",
+      "description": "Plateforme d'apprentissage personnalisé propulsée par l'IA Gemini. Générez votre programme de cours sur mesure en quelques secondes.",
+      "inLanguage": "fr",
+      "publisher": {
+        "@id": "https://mwalimu-mwema.web.app/#organization"
+      }
+    }
+    </script>
+
+  <!-- Schema 3: SoftwareApplication — Référencement en tant qu'app IA (GEO clé) -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "@id": "https://mwalimu-mwema.web.app/#app",
+      "name": "MwalimuMwema",
+      "description": "Application web d'apprentissage personnalisé alimentée par l'IA Gemini de Google. Génère des curricula complets, des leçons détaillées, des quiz d'évaluation et des actualités scientifiques en temps réel pour tous les niveaux d'éducation.",
+      "url": "https://mwalimu-mwema.web.app/",
+      "applicationCategory": "EducationApplication",
+      "operatingSystem": "Web, iOS, Android",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "featureList": [
+        "Génération de curricula IA personnalisés",
+        "Leçons interactives générées par Gemini",
+        "Quiz d'évaluation adaptatifs",
+        "Calculatrice scientifique intégrée",
+        "Actualités scientifiques en temps réel",
+        "Suivi de progression personnalisé",
+        "Assistant de chat IA",
+        "Compatible tous niveaux scolaires"
+      ],
+      "audience": {
+        "@type": "EducationalAudience",
+        "educationalRole": "student",
+        "audienceType": "Étudiants, Lycéens, Collégiens, Étudiants universitaires"
+      },
+      "inLanguage": "fr",
+      "isAccessibleForFree": true
+    }
+    </script>
+
+  <!-- Schema 4: FAQPage — AEO (Featured Snippets) + GEO (citations LLM) -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "@id": "https://mwalimu-mwema.web.app/#faq",
+      "name": "Questions fréquentes sur MwalimuMwema",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Qu'est-ce que MwalimuMwema ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "MwalimuMwema (« Le Bon Enseignant » en swahili) est une plateforme d'apprentissage en ligne alimentée par l'intelligence artificielle Gemini de Google. Elle génère des programmes de cours complets et personnalisés sur n'importe quelle matière, pour tous les niveaux scolaires allant du primaire au master."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Comment fonctionne MwalimuMwema ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "MwalimuMwema fonctionne en 3 étapes : 1) Choisissez votre niveau scolaire (Primaire, Lycée, Université, etc.), 2) Entrez la matière que vous souhaitez apprendre, 3) L'IA Gemini génère instantanément un curriculum complet avec chapitres, leçons détaillées et quiz d'évaluation."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "MwalimuMwema est-il gratuit ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, MwalimuMwema est entièrement gratuit. Il suffit de créer un compte avec votre adresse e-mail pour accéder à tous les cours générés par l'IA, sans limite de matières ni de niveaux."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Quels niveaux scolaires sont couverts par MwalimuMwema ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "MwalimuMwema couvre tous les niveaux : Primaire (1ère à 6e), Collège (7e et 8e), Lycée (1ère à 4e), Université (Bac+1 à Bac+3), Master (M1, M2) et les Études approfondies. Chaque curriculum est adapté au programme et aux exigences du niveau choisi."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Quelle IA est utilisée par MwalimuMwema ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "MwalimuMwema utilise l'API Gemini de Google DeepMind, l'un des modèles de langage les plus avancés au monde. Cette IA génère des cours structurés, des explications détaillées, des quiz adaptatifs et des actualités scientifiques de qualité académique."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "MwalimuMwema peut-il générer des cours en mathématiques ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, MwalimuMwema excelle dans les mathématiques. La plateforme inclut une calculatrice scientifique intégrée qui s'active automatiquement pour les matières mathématiques. Le curriculum comprend des explications pas à pas, des exemples résolus et des exercices pratiques."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Comment puis-je suivre ma progression sur MwalimuMwema ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "MwalimuMwema dispose d'un système de suivi de progression intégré. Chaque chapitre est validé par un quiz de 10 questions. Votre taux de complétion et votre note globale (sur 20) sont affichés dans votre tableau de bord personnel. Votre progression est synchronisée en temps réel via Firebase."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Puis-je utiliser MwalimuMwema sur mobile ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, MwalimuMwema est entièrement responsive et fonctionne sur tous les appareils : smartphones, tablettes et ordinateurs. L'interface est optimisée pour une expérience de lecture fluide sur mobile."
+          }
+        }
+      ]
+    }
+    </script>
+
+  <!-- Schema 5: HowTo — AEO (Processus en étapes, ideal pour voice search) -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "@id": "https://mwalimu-mwema.web.app/#howto",
+      "name": "Comment créer un cours personnalisé avec MwalimuMwema",
+      "description": "Générez un programme d'apprentissage complet et personnalisé grâce à l'IA Gemini en quelques étapes simples.",
+      "totalTime": "PT2M",
+      "supply": [
+        {
+          "@type": "HowToSupply",
+          "name": "Un compte MwalimuMwema (gratuit)"
+        },
+        {
+          "@type": "HowToSupply",
+          "name": "Une connexion internet"
+        }
+      ],
+      "step": [
+        {
+          "@type": "HowToStep",
+          "position": 1,
+          "name": "Créer un compte",
+          "text": "Rendez-vous sur MwalimuMwema et créez votre compte gratuit avec votre adresse e-mail. Un code de vérification vous sera envoyé.",
+          "url": "https://mwalimu-mwema.web.app/"
+        },
+        {
+          "@type": "HowToStep",
+          "position": 2,
+          "name": "Choisir votre niveau scolaire",
+          "text": "Sélectionnez votre niveau parmi : Primaire, Collège, Lycée, Université, Master ou Études approfondies. Précisez ensuite votre classe ou promotion.",
+          "url": "https://mwalimu-mwema.web.app/"
+        },
+        {
+          "@type": "HowToStep",
+          "position": 3,
+          "name": "Entrer la matière souhaitée",
+          "text": "Tapez la matière que vous souhaitez apprendre dans le champ de recherche. Exemples : Physique quantique, Histoire de l'Afrique, Analyse de données, Géopolitique.",
+          "url": "https://mwalimu-mwema.web.app/"
+        },
+        {
+          "@type": "HowToStep",
+          "position": 4,
+          "name": "Générer votre curriculum",
+          "text": "Cliquez sur « Générer mon cours ». L'IA Gemini crée en quelques secondes un programme complet avec tous les chapitres, objectifs pédagogiques et ressources.",
+          "url": "https://mwalimu-mwema.web.app/"
+        },
+        {
+          "@type": "HowToStep",
+          "position": 5,
+          "name": "Étudier et valider les chapitres",
+          "text": "Ouvrez chaque chapitre pour accéder au cours détaillé, aux exemples et aux ressources YouTube. Terminez par le quiz de 10 questions pour valider votre maîtrise du chapitre.",
+          "url": "https://mwalimu-mwema.web.app/"
+        }
+      ]
+    }
+    </script>
+
+  <!-- Schema 6: EducationalOrganization — Pour les recherches liées à l'éducation -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "@id": "https://mwalimu-mwema.web.app/#edu-org",
+      "name": "MwalimuMwema",
+      "description": "Plateforme d'enseignement en ligne propulsée par l'IA, offrant des cours personnalisés pour tous les niveaux scolaires.",
+      "url": "https://mwalimu-mwema.web.app/",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Cours générés par IA",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Course",
+              "name": "Cours personnalisé Primaire",
+              "description": "Cours adaptés aux élèves du primaire (1ère à 6e), générés par IA Gemini."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Course",
+              "name": "Cours personnalisé Lycée",
+              "description": "Programmes complets pour lycéens (1ère à 4e), incluant sciences, lettres, mathématiques."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Course",
+              "name": "Cours personnalisé Université / Master",
+              "description": "Curricula approfondis pour étudiants universitaires et masters, toutes filières."
+            }
+          }
+        ]
+      }
+    }
+    </script>
+
+</head>
+
+<body>
+  <!-- AEO: Noscript fallback pour les crawlers qui n'exécutent pas JavaScript -->
+  <noscript>
+    <div style="font-family:sans-serif;max-width:800px;margin:40px auto;padding:20px;">
+      <h1>MwalimuMwema — Plateforme d'apprentissage IA</h1>
+      <p>MwalimuMwema est une plateforme d'apprentissage en ligne alimentée par l'intelligence artificielle Gemini de
+        Google. Générez des cours personnalisés sur n'importe quelle matière, pour tous les niveaux scolaires.</p>
+      <p>Pour accéder à la plateforme, veuillez activer JavaScript dans votre navigateur.</p>
+      <h2>Fonctionnalités principales :</h2>
+      <ul>
+        <li>Génération de curricula IA personnalisés</li>
+        <li>Leçons détaillées et quiz adaptatifs</li>
+        <li>Tous niveaux : Primaire, Lycée, Université, Master</li>
+        <li>Actualités scientifiques en temps réel</li>
+        <li>Calculatrice scientifique intégrée</li>
+        <li>100% gratuit</li>
+      </ul>
+    </div>
+  </noscript>
+
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
