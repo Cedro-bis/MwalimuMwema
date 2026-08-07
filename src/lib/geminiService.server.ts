@@ -8,8 +8,10 @@ import { Level, Curriculum, Chapter, QuizQuestion, ScienceNews } from "../types"
 import fs from "fs";
 import path from "path";
 
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY,
+const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
+
+const ai = new GoogleGenAI({
+  apiKey: apiKey,
   httpOptions: {
     headers: {
       'User-Agent': 'aistudio-build',
@@ -30,7 +32,7 @@ try {
 }
 
 function getCacheKey(prefix: string, ...parts: string[]): string {
-  const normalized = parts.map(p => 
+  const normalized = parts.map(p =>
     String(p || '')
       .toLowerCase()
       .trim()
@@ -63,7 +65,7 @@ function getFromCache<T>(key: string, maxAgeMs: number = 0): T | null {
       const payload = JSON.parse(content);
       if (maxAgeMs > 0 && Date.now() - payload.timestamp > maxAgeMs) {
         console.log(`[CACHE DISK EXPIRED] Key: ${key}`);
-        try { fs.unlinkSync(filePath); } catch {}
+        try { fs.unlinkSync(filePath); } catch { }
       } else {
         // Hydrate In-memory cache
         memoryCache.set(key, payload);
@@ -106,45 +108,45 @@ async function callGeminiWithRetry(params: any, maxRetries = 4): Promise<string>
     try {
       // Alternate models on retries to bypass capacity issues on specific models
       const modelToUse = attempts % 2 === 0 ? "gemini-3.5-flash" : "gemini-3.1-flash-lite";
-      
+
       const response = await ai.models.generateContent({
         ...params,
-        model: modelToUse, 
+        model: modelToUse,
       });
       if (!response.text) throw new Error("Réponse vide de l'IA (Empty text)");
       return response.text;
     } catch (error: any) {
       attempts++;
       const errorMessage = error?.message || "";
-      const isTransient = errorMessage.includes("Rpc failed") || 
-                          errorMessage.includes("xhr error") || 
-                          error?.code === 500 || 
-                          error?.code === 503 ||
-                          error?.code === 429 ||
-                          error?.status === "UNAVAILABLE" ||
-                          error?.status === "RESOURCE_EXHAUSTED" ||
-                          errorMessage.includes("429") ||
-                          errorMessage.includes("503") ||
-                          errorMessage.includes("high demand") ||
-                          errorMessage.includes("Try again later") ||
-                          errorMessage.includes("quota"); // add quota as transient if it's per minute quota
+      const isTransient = errorMessage.includes("Rpc failed") ||
+        errorMessage.includes("xhr error") ||
+        error?.code === 500 ||
+        error?.code === 503 ||
+        error?.code === 429 ||
+        error?.status === "UNAVAILABLE" ||
+        error?.status === "RESOURCE_EXHAUSTED" ||
+        errorMessage.includes("429") ||
+        errorMessage.includes("503") ||
+        errorMessage.includes("high demand") ||
+        errorMessage.includes("Try again later") ||
+        errorMessage.includes("quota"); // add quota as transient if it's per minute quota
 
       if (isTransient && attempts <= maxRetries) {
         // Exponential backoff for 503 high demand: 2s, 4s, 8s, 16s
         const backoffMs = Math.pow(2, attempts) * 1000;
-        console.warn(`Gemini API error on attempt ${attempts} (${error?.status || errorMessage}). Retrying in ${backoffMs/1000}s...`);
+        console.warn(`Gemini API error on attempt ${attempts} (${error?.status || errorMessage}). Retrying in ${backoffMs / 1000}s...`);
         await new Promise(resolve => setTimeout(resolve, backoffMs));
         continue;
       }
-      
+
       // If it's a 503 or 429 and we exhausted retries, throw a better error message in french
       if (error?.code === 503 || error?.status === "UNAVAILABLE" || errorMessage.includes("high demand")) {
-         throw new Error("L'intelligence artificielle est actuellement surchargée. Veuillez réessayer dans quelques instants.");
+        throw new Error("L'intelligence artificielle est actuellement surchargée. Veuillez réessayer dans quelques instants.");
       }
       if (error?.code === 429 || error?.status === "RESOURCE_EXHAUSTED" || errorMessage.includes("429") || errorMessage.includes("quota")) {
-         throw new Error("La limite d'utilisation de l'IA a été atteinte. Veuillez patienter un moment avant de réessayer.");
+        throw new Error("La limite d'utilisation de l'IA a été atteinte. Veuillez patienter un moment avant de réessayer.");
       }
-      
+
       throw error;
     }
   }
@@ -285,18 +287,18 @@ export const GeminiService = {
                 properties: {
                   type: { type: Type.STRING, enum: ["mcq", "text"], description: "Type de question: 'mcq' pour choix multiple, 'text' pour réponse écrite libre" },
                   question: { type: Type.STRING },
-                  options: { 
-                    type: Type.ARRAY, 
+                  options: {
+                    type: Type.ARRAY,
                     items: { type: Type.STRING },
                     description: "Les options possibles (4 choix) pour mcq. Tableau vide [] si type de question is 'text'."
                   },
-                  correctAnswerIndex: { 
-                    type: Type.NUMBER, 
-                    description: "Uniquement pour le type 'mcq', l'index de la bonne réponse (0-indexed). Mettez -1 pour le type 'text'." 
+                  correctAnswerIndex: {
+                    type: Type.NUMBER,
+                    description: "Uniquement pour le type 'mcq', l'index de la bonne réponse (0-indexed). Mettez -1 pour le type 'text'."
                   },
-                  correctAnswerText: { 
-                    type: Type.STRING, 
-                    description: "La réponse écrite courte correcte pour le type 'text' (ou liste de mots-clés séparés par des virgules). Mettez un texte vide pour le type 'mcq'." 
+                  correctAnswerText: {
+                    type: Type.STRING,
+                    description: "La réponse écrite courte correcte pour le type 'text' (ou liste de mots-clés séparés par des virgules). Mettez un texte vide pour le type 'mcq'."
                   },
                   explanation: { type: Type.STRING }
                 },
@@ -314,7 +316,7 @@ export const GeminiService = {
       ...link,
       url: link.url.startsWith('http') ? link.url : `https://www.youtube.com/results?search_query=${encodeURIComponent(link.title)}`
     }));
-    
+
     saveToCache(cacheKey, data);
     return data;
   },
@@ -356,7 +358,7 @@ export const GeminiService = {
       return cached;
     }
 
-    const prompt = specificDomain 
+    const prompt = specificDomain
       ? `Génère les dernières actualités scientifiques, innovations et découvertes les plus marquantes et révolutionnaires spécifiquement pour le domaine : "${specificDomain}". Assure-toi que les actualités soient riches, extrêmement détaillés et de niveau professionnel.`
       : `Génère les dernières actualités scientifiques, innovations et découvertes les plus marquantes et révolutionnaires du moment. Organise-les par domaines majeurs (ex: Astronomie, Médecine, Intelligence Artificielle, Environnement, Physique). Assure-toi que chaque domaine propose des innovations majeures réelles ou inspirées de récents papiers de recherche.`;
 
