@@ -13,10 +13,37 @@ import {
   generateGenericCurriculumForTier
 } from "./offlineCurriculaData";
 import { ADDITIONAL_SUBJECT_TIERS } from "./offlineCurriculaDataMore";
+import { EXTENDED_SUBJECT_TIERS } from "./offlineCurriculaDataExtended";
+import { SPECIALIZED_SUBJECT_TIERS } from "./offlineSpecializedCurricula";
+import { SPECIALIZED_SUBJECT_TIERS_MORE } from "./offlineSpecializedCurriculaMore";
+import {
+  ensureSevenToEightChapters,
+  synthesizeChapterKnowledge
+} from "./offlineCurriculumExpander";
 
 // Versioned local storage cache keys to prevent stale, non-adapted curricula
-const OFFLINE_CURRICULUM_PREFIX = "mwalimu_offline_v3_curr_";
-const OFFLINE_CHAPTER_PREFIX = "mwalimu_offline_v3_chap_";
+const OFFLINE_CURRICULUM_PREFIX = "mwalimu_offline_v6_curr_";
+const OFFLINE_CHAPTER_PREFIX = "mwalimu_offline_v6_chap_";
+
+// One-time cleanup of obsolete shallow caches from previous versions
+if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.startsWith("mwalimu_offline_v1_") ||
+        key.startsWith("mwalimu_offline_v2_") ||
+        key.startsWith("mwalimu_offline_v3_") ||
+        key.startsWith("mwalimu_offline_v4_") ||
+        key.startsWith("mwalimu_offline_v5_")
+      )) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch (e) {
+    // Ignore storage errors in restricted contexts
+  }
+}
 
 function normalizeKey(str: string): string {
   return String(str || "")
@@ -29,15 +56,20 @@ function normalizeKey(str: string): string {
 }
 
 /**
- * All knowledge domains combined across primary, college, lycée, university and master
+ * All knowledge domains combined across primary, college, lycée, university and master.
+ * Specialized topics (Web dev, Geometry, Algebra, DB/SQL, Probability) have strict first priority.
  */
 const ALL_TIERED_SUBJECTS: SubjectKnowledgeTier[] = [
+  ...SPECIALIZED_SUBJECT_TIERS,
+  ...SPECIALIZED_SUBJECT_TIERS_MORE,
   ...TIERED_SUBJECT_KNOWLEDGE,
-  ...ADDITIONAL_SUBJECT_TIERS
+  ...ADDITIONAL_SUBJECT_TIERS,
+  ...EXTENDED_SUBJECT_TIERS
 ];
 
 /**
- * Finds the tiered subject knowledge matching keywords, or generates a tailored generic one
+ * Finds the tiered subject knowledge with strict semantic disambiguation to eliminate hallucinations
+ * (e.g. Web programming getting Python, Geometry getting polynomials, etc.)
  */
 function getTierSubjectData(level: Level, subject: string, tier: LevelTier): {
   objectives: string[];
@@ -45,19 +77,108 @@ function getTierSubjectData(level: Level, subject: string, tier: LevelTier): {
   domainName: string;
 } {
   const norm = normalizeKey(subject);
+  const words = norm.split("_").filter(w => w.length >= 2);
+
+  // Semantic intent flags
+  const isWebIntent = norm.includes("web") || norm.includes("html") || norm.includes("css") || norm.includes("frontend") || norm.includes("site");
+  const isGeometryIntent = norm.includes("geometrie") || norm.includes("geometrique") || norm.includes("pythagore") || norm.includes("thales") || norm.includes("triangle") || norm.includes("vecteur");
+  const isAlgebraIntent = norm.includes("algebre") || norm.includes("polynome") || norm.includes("factorisation") || norm.includes("calcul_litteral");
+  const isDatabaseIntent = norm.includes("sql") || norm.includes("base_de_donnees") || norm.includes("bdd") || norm.includes("database");
+  const isProbStatIntent = norm.includes("probabilite") || norm.includes("statistique") || norm.includes("mediane") || norm.includes("hasard");
+
+  let bestItem: SubjectKnowledgeTier | null = null;
+  let bestScore = -9999;
 
   for (const item of ALL_TIERED_SUBJECTS) {
-    if (item.keywords.some(k => norm.includes(k) || k.includes(norm))) {
-      const tierData = item.tiers[tier] || item.tiers.university;
-      return {
-        objectives: tierData.objectives,
-        chapters: tierData.chapters,
-        domainName: item.domainName
-      };
+    let score = 0;
+    const normDomain = normalizeKey(item.domainName);
+
+    // Exact domain match has highest organic priority
+    if (norm === normDomain) {
+      score += 400;
+    } else if (normDomain.includes(norm) && norm.length >= 4) {
+      score += 180;
+    } else if (norm.includes(normDomain)) {
+      score += 150;
+    }
+
+    // Keyword matching
+    for (const kw of item.keywords) {
+      const normKw = normalizeKey(kw);
+      if (norm === normKw) {
+        score += 250;
+      } else if (norm.includes(normKw)) {
+        score += 100 + normKw.length * 2;
+      } else if (normKw.includes(norm) && norm.length >= 4) {
+        score += 80;
+      } else {
+        for (const w of words) {
+          if (w.length >= 3 && (normKw === w || normKw.includes(`_${w}_`) || normKw.startsWith(`${w}_`) || normKw.endsWith(`_${w}`))) {
+            score += 30;
+          }
+        }
+      }
+    }
+
+    // Strict semantic disambiguation filters
+    if (isWebIntent) {
+      if (normDomain === "programmation_web") {
+        score += 600;
+      } else if (normDomain.includes("informatique") || normDomain.includes("algorithmique")) {
+        // Severe penalty: never substitute general Python for web programming
+        score -= 500;
+      }
+    }
+
+    if (isGeometryIntent) {
+      if (normDomain === "geometrie") {
+        score += 600;
+      } else if (normDomain === "mathematiques") {
+        // Severe penalty: never give polynomials or algebra general math for geometry
+        score -= 500;
+      }
+    }
+
+    if (isAlgebraIntent) {
+      if (normDomain === "algebre") {
+        score += 600;
+      } else if (normDomain === "geometrie") {
+        score -= 500;
+      }
+    }
+
+    if (isDatabaseIntent) {
+      if (normDomain === "bases_de_donnees") {
+        score += 600;
+      } else if (normDomain.includes("informatique")) {
+        score -= 400;
+      }
+    }
+
+    if (isProbStatIntent) {
+      if (normDomain === "probabilites_et_statistiques") {
+        score += 600;
+      } else if (normDomain === "mathematiques" || normDomain === "geometrie") {
+        score -= 400;
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestItem = item;
     }
   }
 
-  // Fallback to level-tailored generic curriculum
+  if (bestItem && bestScore >= 40) {
+    const tierData = bestItem.tiers[tier] || bestItem.tiers.university;
+    return {
+      objectives: tierData.objectives,
+      chapters: tierData.chapters,
+      domainName: bestItem.domainName
+    };
+  }
+
+  // Fallback to level-tailored generic curriculum with 5 structured chapters
   const generic = generateGenericCurriculumForTier(level, subject, tier);
   return {
     objectives: generic.objectives,
@@ -67,7 +188,7 @@ function getTierSubjectData(level: Level, subject: string, tier: LevelTier): {
 }
 
 /**
- * Builds rich, pedagogically authentic markdown content adapted specifically to the educational tier
+ * Builds rich, pedagogically authentic, in-depth markdown content adapted specifically to the educational tier
  */
 function buildLevelAdaptedLesson(
   tier: LevelTier,
@@ -81,56 +202,92 @@ function buildLevelAdaptedLesson(
     ? matchedChap.formulas.map(f => `$$\n${f}\n$$`).join("\n\n")
     : "";
 
+  const capSubject = subject.charAt(0).toUpperCase() + subject.slice(1);
+
   if (tier === "primary") {
     return `
 # 🌟 ${chapterTitle}
 
-Bonjour cher élève ! Bienvenue dans cette leçon spécialement préparée pour ta classe de **${level}**.
-Aujourd'hui, nous allons explorer ensemble **${subject}** pas à pas, avec des explications simples et des exemples de la vie de tous les jours !
+Bienvenue dans ta leçon de **${capSubject}** pour la classe de **${level}** !
+Prends ton cahier, tes crayons et installe-toi confortablement : nous allons tout comprendre ensemble, pas à pas et avec le sourire.
 
 ---
 
-## 📖 1. L'Histoire pour Tout Comprendre
+## 🎯 Ce que tu vas savoir faire à la fin de cette leçon
+- Comprendre parfaitement ce que signifie **${chapterTitle}**.
+- Découvrir et retenir facilement les mots magiques : ${matchedChap.coreConcepts.slice(0, 3).map(c => `**${c}**`).join(", ")}.
+- Réussir l'exercice guidé sans aucune hésitation.
+- Devenir un champion pour le grand quiz final !
 
-Imagine que tu découvres une nouvelle aventure ou un grand jeu avec tes camarades.
-Dans cette leçon sur **${chapterTitle}**, il n'y a rien de difficile si on avance avec calme et curiosité !
+---
+
+## 📖 1. La Grande Histoire pour Tout Comprendre
+
+Imagine que tu es un explorateur qui découvre un trésor caché à l'école ou dans la nature.
+Dans le monde qui nous entoure, **${subject}** est partout : quand on regarde l'heure, quand on range ses affaires, quand on partage un gâteau ou quand on observe les étoiles.
+
+La notion de **${chapterTitle}** a été inventée pour nous aider à être plus malins, plus organisés et plus précis.
+
+---
+
+## 📚 2. Le Cours Facile : Les Notions Clés Pas-à-Pas
 
 ${matchedChap.coreConcepts.map((concept, i) => `### 🎈 Étape ${i + 1} : ${concept}
 
-Qu'est-ce que cela veut dire ? C'est très simple !
-Cette règle nous aide à comprendre ce qui se passe autour de nous. Prends le temps de bien lire la phrase et de la répéter dans ta tête.`).join("\n\n")}
+- **Qu'est-ce que c'est ?**
+  ${concept} est une règle très importante mais très facile quand on prend le temps de l'observer. Cela nous dit exactement comment les choses fonctionnent sans se tromper.
 
-${formulas ? `### 📐 La Règle d'Or à Retenir :\n\n${formulas}\n` : ""}
+- **Dans la vraie vie :**
+  Imagine que tu dois expliquer ${concept.toLowerCase()} à un ami qui ne l'a jamais vu. Tu peux lui dire : *"Regarde bien comment c'est fait, ce n'est pas un hasard, il y a une logique toute simple !"*
 
----
+- **L'astuce magique de Mwalimu :**
+  Pour bien t'en souvenir, répète cette phrase trois fois dans ta tête et dessine un petit symbole dans la marge de ton cahier.`).join("\n\n")}
 
-## 💡 2. L'Astuce Magique de Mwalimu
-
-> **Conseil de champion** : Ne te précipite jamais pour donner une réponse !
-> 1. Lis l'exercice deux fois avec ton doigt.
-> 2. Souligne ce que tu connais déjà.
-> 3. Utilise l'astuce de la leçon pour trouver la solution avec le sourire ! ⭐
+${formulas ? `\n---\n\n## 📐 3. La Règle d'Or et la Formule du Cours\n\nVoici le trésor de la leçon à copier dans ton cahier dans un joli cadre :\n\n${formulas}\n` : ""}
 
 ---
 
-## ✏️ 3. L'Exercice Guidé : Faisons-le Ensemble !
+## 💡 4. Les 3 Réflexes du Champion pour Réussir
+1. **Le regard attentif** : Lis toujours la question deux fois avec ton doigt avant de toucher ton stylo.
+2. **La méthode tranquille** : Écris chaque étape sur ton brouillon, sans te presser.
+3. **La vérification fière** : Relis ta réponse finale et demande-toi : *"Est-ce que cela a du bon sens ?"* Si oui, tu as gagné ! ⭐
 
-### 🎯 Le Défi du Jour :
+---
+
+## ✏️ 5. Le Grand Exemple Guidé : Résolvons-le Ensemble !
+
+### 🎯 Énoncé du défi :
 **${matchedChap.practicalEx}**
 
-### 👣 Comment nous trouvons la réponse pas à pas :
-1. **Étape 1 : Ce que nous savons déjà** : Nous regardons bien toutes les informations données.
-2. **Étape 2 : Notre méthode** : Nous appliquons la règle que nous venons d'apprendre dans la leçon.
-3. **Étape 3 : La vérification** : Est-ce que notre résultat a du bon sens ? Oui, parfaitement !
-4. **Étape 4 : La phrase réponse** : Nous écrivons une belle phrase complète pour avoir tous les points.
+### 👣 La solution pas-à-pas :
+1. **Étape 1 : Ce que l'énoncé nous donne**
+   Nous repérons tous les indices donnés par l'exercice pour savoir exactement où nous allons.
+2. **Étape 2 : La règle magique que nous appliquons**
+   Nous utilisons la notion de **${matchedChap.coreConcepts[0] || chapterTitle}** que nous venons d'apprendre.
+3. **Étape 3 : Le résultat étape par étape**
+   En suivant la règle avec soin, nous trouvons la solution exacte en toute sécurité.
+4. **Étape 4 : La phrase réponse complète**
+   À l'école, les maîtres et maîtresses adorent les belles phrases complètes. Nous écrivons :
+   > *"Grâce à la méthode apprise en ${subject}, nous validons avec certitude la réponse demandée."*
 
 ---
 
-## 📝 4. Mon Petit Mémo pour mon Cahier
+## 🧩 6. Deux Petits Exercices d'Entraînement pour Toi
 
-- **La règle essentielle** : ${matchedChap.coreConcepts[0] || chapterTitle}.
-- **Le secret de réussite** : S'entraîner un petit peu chaque jour pour devenir très fort.
-- **Félicitations !** Tu as terminé la lecture du cours. Tu es maintenant prêt pour remporter toutes les étoiles au quiz ! 🌟
+### 🔹 Exercice 1 (Application directe) :
+Prends une feuille et explique avec tes propres mots comment tu utiliserais **${matchedChap.coreConcepts[0] || chapterTitle}** pour résoudre un problème similaire à l'école.
+*💡 Corrigé express : Il suffit de relire l'étape 1 du cours et d'écrire la règle mot à mot avec un exemple de ton choix !*
+
+### 🔹 Exercice 2 (Le défi du champion) :
+Peux-tu citer les 2 mots les plus importants de cette leçon à un camarade ou à tes parents sans regarder la feuille ?
+*💡 Corrigé express : Les mots clés sont ${matchedChap.coreConcepts.slice(0, 2).join(" et ")}.*
+
+---
+
+## 📝 7. Ma Fiche Mémo pour Réviser
+- **Le titre de ma leçon** : ${chapterTitle}.
+- **La discipline** : ${capSubject} (${level}).
+- **Ma fierté** : J'ai lu toute la leçon, j'ai compris les exemples et je suis prêt pour le quiz ! 🏆
     `.trim();
   }
 
@@ -138,50 +295,94 @@ ${formulas ? `### 📐 La Règle d'Or à Retenir :\n\n${formulas}\n` : ""}
     return `
 # 📘 ${chapterTitle}
 
-Programme de Collège — Niveau **${level}** — Discipline : **${subject}**
+**Discipline** : ${domainName || capSubject} | **Classe** : ${level} | **Cycle** : Collège (Cycle 4)
 
 ---
 
-## 1. Objectifs & Définitions Clés
-
-Dans le cadre du programme officiel de **${level}**, l'étude de **${chapterTitle}** constitue un palier essentiel pour structurer votre démarche d'analyse et préparer les évaluations du Brevet.
-
-${matchedChap.coreConcepts.map((concept, i) => `### 1.${i + 1}. ${concept}
-
-**Définition et propriétés fondamentales** :
-Cette notion est un élément pivot du cours. Au collège, il est primordial d'utiliser le vocabulaire scientifique exact et d'adopter une structure de réponse claire (*"Je sais que...", "Or d'après le cours...", "Donc..."*).`).join("\n\n")}
-
-${formulas ? `### 📐 Formules et Propriétés de Calcul :\n\n${formulas}\n` : ""}
+## 🎯 Compétences & Objectifs Pédagogiques Officiels
+- Maîtriser le vocabulaire normalisé et les définitions fondamentales de **${chapterTitle}**.
+- Identifier et mobiliser les propriétés directrices : ${matchedChap.coreConcepts.slice(0, 3).map(c => `*${c}*`).join(", ")}.
+- Conduire une argumentation déductive rigoureuse selon le canevas académique : *"Je sais que..." $\\rightarrow$ "Or d'après la propriété..." $\\rightarrow$ "Donc..."*.
+- Résoudre en autonomie les exercices types et se préparer avec succès aux évaluations et aux exigences du Brevet.
 
 ---
 
-## 2. Méthode pour Réussir les Exercices Types
+## 🔍 1. Contexte & Problématique Disciplinaire
 
-Pour réussir les exercices de contrôle et du brevet :
-1. **Repérage des données** : Noter clairement les grandeurs connues et leurs unités.
-2. **Schématisation** : Faire une figure à main levée ou poser un tableau dès que possible.
-3. **Rédaction rigoureuse** : Toujours citer le nom de la règle ou de la propriété avant d'effectuer le calcul numérique.
+En classe de **${level}**, l'étude de **${chapterTitle}** marque une étape essentielle dans votre apprentissage de **${subject}**.
+Historiquement et scientifiquement, cette notion permet de passer de la simple observation intuitive à une démarche d'investigation structurée et démontrée.
+
+Dans la vie quotidienne comme dans les métiers scientifiques, techniques ou économiques, la maîtrise de **${chapterTitle}** est indispensable pour modéliser des situations réelles et valider des résultats de manière indiscutable.
 
 ---
 
-## 3. Exemple Guidé et Rédigé Pas-à-Pas (Type Évaluation)
+## 📖 2. Cours Détaillé : Notions Piliers & Démonstrations
 
-### Énoncé :
+${matchedChap.coreConcepts.map((concept, i) => `### 2.${i + 1}. ${concept}
+
+#### A. Définition et Caractérisation Formelle
+La notion de **${concept}** constitue une pierre angulaire du programme de ${level}. Elle se définit avec précision :
+Il s'agit de la relation ou de la propriété fondamentale qui régit le comportement de l'objet d'étude dans ce chapitre. Il est impératif d'en connaître les termes exacts pour éviter toute pénalité de barème.
+
+#### B. Mécanisme et Propriétés Directrices
+Pour exploiter **${concept}** dans un devoir :
+1. On repère dans l'énoncé les données qui autorisent son utilisation.
+2. On formule explicitement la condition de validité requise par le cours.
+3. On déduit la conséquence logique ou la valeur numérique attendue.
+
+#### C. Le Piège Classique à Éviter
+> ⚠️ **Erreur fréquente des élèves** : Confondre la propriété directe et sa réciproque, ou oublier de préciser les unités de mesure associées. Veillez toujours à vérifier l'homogénéité de vos réponses.`).join("\n\n")}
+
+${formulas ? `\n---\n\n## 📐 3. Synthèse des Formules et Propriétés de Calcul\n\nÀ mémoriser impérativement pour le prochain contrôle :\n\n${formulas}\n` : ""}
+
+---
+
+## 🛠️ 4. Méthodologie Canonique : Comment Rédiger une Démonstration Parfaite
+
+Pour obtenir le maximum de points lors des contrôles et à l'épreuve du Brevet, appliquez systématiquement la structure en 3 étapes :
+- **Données utiles** : *"Dans l'exercice, nous savons que..."* (citer les données chiffrées et hypothèses du texte).
+- **Justification théorique** : *"Or, d'après la propriété de ${matchedChap.coreConcepts[0] || chapterTitle}..."* (énoncer la règle du cours sans abréviation).
+- **Déduction & Conclusion** : *"Donc..."* (donner le résultat final encadré avec son unité).
+
+---
+
+## 📝 5. Grand Problème Type Évaluation Résolu Pas-à-Pas
+
+### 📌 Énoncé officiel :
 **${matchedChap.practicalEx}**
 
-### Démarche de résolution recommandée :
-- **Identification des hypothèses** : On extrait les informations fournies par l'énoncé.
-- **Choix de la propriété** : On fait référence à la notion théorique adéquate du chapitre.
-- **Calculs intermédiaires** : On détaille chaque étape sans abréviation superflue.
-- **Conclusion et unités** : On donne le résultat final encadré avec son unité de mesure.
+### ✍️ Correction méthodique intégrale :
+1. **Étape 1 : Analyse de la consigne et extraction des données**
+   - Nous identifions les grandeurs connues et la grandeur ou conclusion recherchée.
+   - Nous vérifions si des conversions d'unités préalables sont nécessaires.
+2. **Étape 2 : Choix du théorème ou de la propriété pivot**
+   - Nous mobilisons la règle relative à **${matchedChap.coreConcepts[0] || chapterTitle}**.
+   - Nous attestons que les hypothèses d'application sont pleinement satisfaites.
+3. **Étape 3 : Développement des calculs et justifications intermédiaires**
+   - Chaque opération est détaillée pour que le correcteur puisse suivre la démarche intellectuelle.
+   - Les étapes algébriques ou textuelles sont rédigées avec clarté.
+4. **Étape 4 : Conclusion finale et vérification de vraisemblance**
+   - Le résultat obtenu est en accord avec les ordres de grandeur physiques ou logiques attendus.
+   - La phrase de réponse répond exactement et sans ambiguïté à la question initiale.
 
 ---
 
-## 4. Fiche Bilan Express pour Réviser le Contrôle
+## 🎯 6. Exercices d'Entraînement Direct avec Corrigés Détaillés
 
+### 🔹 Exercice d'Application 1 (Contrôle continu)
+Dans une évaluation de ${level}, on vous demande d'exposer pourquoi la notion de **${matchedChap.coreConcepts[0] || "propriété centrale"}** s'applique à une situation où les hypothèses de base sont réunies.
+*👉 Corrigé complet : Dès que les conditions énoncées dans le cours sont vérifiées par le contexte, la conclusion du théorème s'applique immédiatement par déduction logique directe.*
+
+### 🔹 Exercice d'Application 2 (Type Brevet)
+Un camarade affirme un résultat sans citer la propriété du cours correspondante. Quelle critique méthodologique devez-vous formuler ?
+*👉 Corrigé complet : Au collège, un résultat sans citation explicite de la propriété ou du théorème n'est pas recevable. La justification représente généralement plus de 60% des points attribués par le barème.*
+
+---
+
+## 📌 7. Fiche Bilan Express pour le Contrôle
 - **Notion maîtresse** : ${matchedChap.coreConcepts[0] || chapterTitle}.
-- **Piège classique à éviter** : Oublier de convertir les unités ou négliger la phrase de justification.
-- **Auto-évaluation** : Êtes-vous capable de réexpliquer ce cours à un camarade de classe ?
+- **Formule ou définition clé** : Revoir attentivement la section 3 ci-dessus.
+- **Réflexe d'or** : Toujours encadrer son résultat et vérifier les unités avant de rendre sa copie.
     `.trim();
   }
 
@@ -189,48 +390,99 @@ Pour réussir les exercices de contrôle et du brevet :
     return `
 # 🔬 ${chapterTitle}
 
-Cycle Terminal — Niveau **${level}** — Enseignement officiel : **${subject}**
+**Enseignement** : ${domainName || capSubject} | **Classe** : ${level} | **Cycle** : Lycée (Cycle Terminal / Seconde)
 
 ---
 
-## 1. Problématique et Cadre Mathématique / Scientifique
-
-Le chapitre **${chapterTitle}** répond aux exigences approfondies du programme de **${level}**. Il développe les compétences de modélisation abstraite, de déduction rigoureuse et de résolution de problèmes complexes indispensables pour le Baccalauréat et l'enseignement supérieur.
-
-${matchedChap.coreConcepts.map((concept, i) => `### 1.${i + 1}. ${concept}
-
-**Analyse formelle** :
-Cette notion s'insère dans un cadre déductif rigoureux. L'élève doit systématiquement vérifier les conditions préalables d'application des théorèmes avant toute conclusion analytique.`).join("\n\n")}
-
-${formulas ? `### 📐 Théorèmes et Relations Formelles :\n\n${formulas}\n` : ""}
+## 🎯 Objectifs Référentiels & Compétences du Baccalauréat
+- Maîtriser l'architecture théorique, les théorèmes et le formalisme axiomatique de **${chapterTitle}**.
+- Développer une démarche de modélisation formelle rigoureuse : identification des variables d'état, conditions aux limites et hypothèses d'invariance.
+- Mobiliser avec pertinence les concepts directeurs : ${matchedChap.coreConcepts.map(c => `\`${c}\``).join(", ")}.
+- Résoudre des problèmes complexes à questions enchaînées et acquérir les réflexes méthodologiques requis pour les épreuves écrites du Baccalauréat et l'entrée dans l'enseignement supérieur.
 
 ---
 
-## 2. Démonstrations et Propriétés Exigibles au Baccalauréat
+## 🧭 1. Problématique & Fondements Épistémologiques
 
-1. **Validation des hypothèses** : Citer explicitement les conditions (continuité, dérivation, signe, référentiel galiléen) nécessaires à la validité des théorèmes.
-2. **Chaîne déductive** : Justifier chaque égalité ou implication logique par une règle du programme.
-3. **Analyse critique du résultat** : Vérifier la cohérence dimensionnelle, les symétries et l'ordre de grandeur du résultat final.
+Le chapitre **${chapterTitle}** occupe une place névralgique dans le programme de **${level}**.
+Son émergence théorique répond à la nécessité de formaliser mathématiquement ou analytiquement des phénomènes dont l'intuition première ne permettait pas de rendre compte avec exactitude.
+
+Au lycée, aborder **${chapterTitle}** requiert d'abandonner l'approximation pour adopter une exigence démonstrative complète :
+- Vérification explicite du domaine de définition et de validité.
+- Prise en compte rigoureuse des symétries, continuités ou lois de conservation.
+- Analyse critique des résultats par le biais de l'analyse dimensionnelle et de l'étude des régimes asymptotiques.
 
 ---
 
-## 3. Problème d'Approfondissement Type Bac Résolu et Commenté
+## 📚 2. Développement Didactique Approfondi des Notions Fondamentales
 
-### Énoncé de synthèse :
+${matchedChap.coreConcepts.map((concept, i) => `### 2.${i + 1}. ${concept}
+
+#### A. Énoncé Formel & Cadre Théorique
+La notion de **${concept}** est définie dans le cadre axiomatique de **${subject}** par des critères rigoureux.
+Elle traduit de manière univoque la relation fonctionnelle, structurelle ou causale qui lie les éléments du système étudié.
+
+#### B. Hypothèses Impératives de Validité
+Aucun théorème ou résultat attaché à **${concept}** ne peut être mobilisé sans avoir préalablement vérifié :
+1. L'appartenance des variables aux ensembles et intervalles de définition appropriés.
+2. La régularité du système (continuité, dérivabilité, conservation de l'énergie, référentiel galiléen, etc.).
+3. La compatibilité des conditions aux limites imposées par la problématique.
+
+#### C. Démonstration Type ou Justification Approfondie
+La démonstration canonique de cette propriété repose sur l'enchaînement de déductions logiques strictes. L'élève de ${level} doit être capable de reconstruire l'argumentation sans hésitation lors d'une question de cours ou d'une ROC (Restitution Organisée de Connaissances).
+
+#### D. Pièges d'Évaluation & Analyse des Fausses Pistes
+> ⚠️ **Point de vigilance Baccalauréat** : L'omission des conditions initiales ou l'interversion injustifiée de limites constituent les erreurs les plus sanctionnées par les jurys de correction.`).join("\n\n")}
+
+${formulas ? `\n---\n\n## 📐 3. Formalisme Mathématique & Théorèmes Majeurs\n\nRelations fondamentales et expressions formelles exigibles à l'examen :\n\n${formulas}\n` : ""}
+
+---
+
+## 🔬 4. Méthodologie d'Analyse : Démarche d'Investigation au Baccalauréat
+
+Face à un sujet de synthèse au Baccalauréat :
+1. **Décomposition analytique** : Repérez la structure arborescente des questions. Une question commençant par *"En déduire..."* impose d'exploiter le lemme ou l'égalité établie à la question précédente.
+2. **Analyse dimensionnelle systématique** : Vérifiez l'homogénéité de vos formules littérales avant toute application numérique.
+3. **Regard critique sur le résultat** : Commentez la cohérence du signe, de l'ordre de grandeur et du comportement lorsque l'une des variables tend vers ses valeurs extrêmes ($0$ ou $+\\infty$).
+
+---
+
+## 📝 5. Grand Problème Type Baccalauréat Résolu et Commenté
+
+### 📌 Énoncé officiel de synthèse :
 **${matchedChap.practicalEx}**
 
-### Correction méthodique intégrale :
-1. **Modélisation** : Traduction du problème concret en relations symboliques ou équations formelles.
-2. **Résolution analytique** : Dérivation des solutions en explicitant toutes les étapes de calcul.
-3. **Interprétation critique** : Discussion du domaine de validité et validation de la solution trouvée.
+### ✍️ Résolution intégrale détaillée :
+1. **Modélisation formelle du problème**
+   - Nous posons le référentiel d'étude, les notations symboliques et le système d'équations gouvernantes.
+   - Les hypothèses simplificatrices sont expressément listées et justifiées.
+2. **Dérivation analytique pas-à-pas**
+   - Nous appliquons le principe fondamental ou le théorème directeur de **${matchedChap.coreConcepts[0] || chapterTitle}**.
+   - Chaque transformation algébrique est explicitée sans saut d'étape afin d'assurer une lisibilité maximale pour le correcteur.
+3. **Application numérique et respect des chiffres significatifs**
+   - L'application numérique n'intervient qu'en toute fin de calcul, sur l'expression littérale finale simplifiée.
+   - Les incertitudes et le nombre de chiffres significatifs sont scrupuleusement respectés.
+4. **Discussion physique ou critique du résultat**
+   - Nous analysons si le résultat est conforme aux prédictions théoriques et aux contraintes du monde réel.
 
 ---
 
-## 4. Fiche de Synthèse des Compétences Exigibles
+## 🎯 6. Exercices d'Approfondissement avec Corrigés Détaillés
 
-- **Maîtrise théorique** : Définition formelle de ${matchedChap.coreConcepts[0] || chapterTitle}.
-- **Rigueur méthodologique** : Rédaction fluide, structurée et sans omission d'hypothèses.
-- **Capacité de transfert** : Savoir réinvestir ces propriétés dans un problème inédit à questions enchaînées.
+### 🔹 Exercice 1 (Question type Baccalauréat)
+Démontrez comment la propriété de **${matchedChap.coreConcepts[0] || chapterTitle}** permet d'établir l'unicité ou la stabilité de la solution dans un intervalle fermé borné.
+*👉 Corrigé complet : En invoquant le théorème des valeurs intermédiaires (ou le principe de stricte monotonie / minimum d'énergie), la continuité et la stricte variation assurent l'existence et l'unicité d'une solution unique.*
+
+### 🔹 Exercice 2 (Étude de cas limite)
+Que devient l'expression obtenue dans le grand problème lorsque la variable principale tend vers zéro ?
+*👉 Corrigé complet : L'analyse asymptotique montre que l'expression converge vers le régime stationnaire linéaire attendu, ce qui confirme la robustesse théorique de la modélisation.*
+
+---
+
+## 📌 7. Fiche Mémento pour l'Épreuve du Baccalauréat
+- **Concept pivot** : ${matchedChap.coreConcepts[0] || chapterTitle}.
+- **Formule maîtresse** : Vérifier scrupuleusement les relations du paragraphe 3.
+- **Réflexe du correcteur** : La rigueur de la démonstration littérale prime sur le résultat chiffré brut.
     `.trim();
   }
 
@@ -238,52 +490,87 @@ ${formulas ? `### 📐 Théorèmes et Relations Formelles :\n\n${formulas}\n` : 
   return `
 # 🏛️ ${chapterTitle}
 
-Cursus Universitaire & Recherche — Niveau **${level}** — Discipline : **${domainName}**
+**Cursus** : Enseignement Supérieur & Recherche | **Niveau** : ${level} | **Discipline** : ${domainName || capSubject}
 
 ---
 
-## 1. Cadre Épistémologique et Axiomatique
-
-L'étude de **${chapterTitle}** se situe au cœur des développements modernes de **${subject}**. Ce cours formalise les fondements théoriques, les structures algébriques ou physiques sous-jacentes et les outils d'investigation contemporains.
-
-${matchedChap.coreConcepts.map((concept, i) => `### 1.${i + 1}. ${concept}
-
-**Formalisation théorique de haut niveau** :
-Ce concept fait l'objet d'une caractérisation rigoureuse. On étudie ses propriétés topologiques, spectrales ou asymptotiques, ainsi que son comportement sous diverses classes de transformations et contraintes.`).join("\n\n")}
-
-${formulas ? `### 📐 Développements Analytiques & Équations Fondamentales :\n\n${formulas}\n` : ""}
+## 🎯 Objectifs Pédagogiques & Compétences Académiques Avancées
+- Formaliser le cadre axiomatique, topologique et épistémologique de **${chapterTitle}**.
+- Maîtriser la dérivation analytique des équations gouvernantes, les lemmes de coercivité, de régularité et d'unicité.
+- Conduire une analyse critique des publications de référence et situer les limites des paradigmes contemporains.
+- Développer des capacités d'investigation autonome, de modélisation mathématique/empirique avancée et de synthèse scientifique originale.
 
 ---
 
-## 2. Démonstration Rigoureuse, Lemmes et Régimes Asymptotiques
+## 🧭 1. Cadre Épistémologique & Fondations Axiomatiques
 
-1. **Axiomatisation** : Définition formelle des espaces d'états, des métriques et des opérateurs gouvernants.
-2. **Théorèmes d'existence et d'unicité** : Formulation des conditions de régularité et d'isomorphisme.
-3. **Comportement aux limites** : Analyse asymptotique, bifurcations et stabilité des solutions.
+L'étude de **${chapterTitle}** constitue un pilier des développements modernes en **${subject}**.
+Historiquement forgée pour dépasser les contradictions des approches empiriques naïves, cette discipline formalise les invariants structurels à travers des espaces fonctionnels ou tensoriels rigoureusement définis.
+
+Au niveau **${level}**, l'approche académique privilégie l'analyse des propriétés spectrales, la recherche des régimes asymptotiques et la caractérisation des singularités et bifurcations.
 
 ---
 
-## 3. Étude de Cas Complexe & Modélisation Analytique
+## 📚 2. Corpus Théorique Détaillé & Démonstrations Fondamentales
 
-### Problématique de recherche / Modélisation avancée :
+${matchedChap.coreConcepts.map((concept, i) => `### 2.${i + 1}. ${concept}
+
+#### A. Formalisation Axiomatique & Espaces Sous-Jacents
+La caractérisation de **${concept}** repose sur une structure algébrique ou fonctionnelle complète.
+On définit explicitement l'espace des états $\\mathcal{H}$, muni d'une norme adaptée et des topologies faibles/fortes pertinentes.
+
+#### B. Théorèmes d'Existence, d'Unicité et de Régularité
+L'analyse de **${concept}** mobilise les grands résultats de l'analyse moderne (théorèmes de point fixe de Banach/Schauder, lemme de Lax-Milgram, décomposition spectrale).
+Ces outils garantissent que le problème variationnel ou différentiel associé admet une solution unique dans la classe de régularité appropriée.
+
+#### C. Développements Asymptotiques & Lois d'Échelle
+Sous des sollicitations extrêmes ou lorsque certains paramètres caractéristiques tendent vers des limites singulières, **${concept}** exhibe des régimes universels gouvernés par des exposants d'échelle invariants.
+
+#### D. Discussion Critique & Limites des Modèles
+> 🔬 **Perspective de recherche** : L'hypothèse de linéarité ou de séparabilité souvent adoptée dans les modèles canoniques s'avère insuffisante dans les régimes fortement couplés ou chaotiques, imposant le recours aux théories de perturbation non-linéaire.`).join("\n\n")}
+
+${formulas ? `\n---\n\n## 📐 3. Développements Analytiques & Équations Fondamentales\n\nSystème d'équations gouvernantes et formulations variationnelles :\n\n${formulas}\n` : ""}
+
+---
+
+## 📝 4. Étude de Cas Complexe / Modélisation de Recherche Résolue
+
+### 📌 Problématique de recherche :
 **${matchedChap.practicalEx}**
 
-### Dérivation et Résolution :
-- **Formulation mathématique** : Écriture du système sous forme variationnelle ou différentielle.
-- **Résolution analytique** : Décomposition spectrale, intégration ou développement en séries.
-- **Discussion critique** : Analyse des régimes limites et comparaison avec les modèles empiriques ou expérimentaux.
+### ✍️ Dérivation formelle et résolution intégrale :
+1. **Formulation variationnelle et choix des espaces de Sobolev**
+   - Écriture du problème faible sur l'espace fonctionnel adéquat avec conditions aux limites de Dirichlet/Neumann.
+   - Vérification de la continuité et de la coercivité de la forme bilinéaire associée.
+2. **Décomposition spectrale et régularisation**
+   - Dérivation des valeurs propres et fonctions propres gouvernant le système.
+   - Analyse de la propagation d'ondes ou de la convergence des séries orthogonales.
+3. **Analyse des singularités et stabilité au sens de Lyapunov**
+   - Détermination du spectre des valeurs propres pour établir les critères d'instabilité ou de bifurcation de Hopf.
+   - Confrontation des solutions analytiques aux données expérimentales ou empiriques de la littérature.
 
 ---
 
-## 4. Synthèse Critique et Perspectives de Recherche
+## 🎯 5. Problèmes de TD / Partiel Avancés avec Corrigés Complets
 
+### 🔹 Exercice Avancé 1 : Théorème de Représentation et Complétude
+Justifiez pourquoi la formulation de **${matchedChap.coreConcepts[0] || chapterTitle}** induit un opérateur autoadjoint compact.
+*👉 Corrigé complet : En vertu des injections compactes de Sobolev (théorème de Rellich-Kondrachov), l'inverse de l'opérateur différentiel est compact, ce qui garantit par le théorème spectral l'existence d'une base hilbertienne orthogonale de vecteurs propres.*
+
+### 🔹 Exercice Avancé 2 : Analyse Asymptotique
+Déterminez le comportement aux limites lorsque le paramètre de perturbation $\\varepsilon \\to 0$.
+*👉 Corrigé complet : Par la méthode des développements asymptotiques raccordés (matched asymptotic expansions), la solution se décompose en une couche limite externe régulière et une couche limite interne exponentiellement décroissante.*
+
+---
+
+## 📌 6. Synthèse Critique & Perspectives de Recherche
 - **Pivot théorique** : ${matchedChap.coreConcepts[0] || chapterTitle}.
-- **Frontières de la recherche** : Questions ouvertes dans la littérature contemporaine et interconnexions interdisciplinaires.
+- **Frontières actuelles** : Questions ouvertes dans les publications indexées internationales et modélisation multi-échelles.
     `.trim();
 }
 
 /**
- * Builds 10 rich, age-appropriate quiz questions strictly tailored to the educational tier
+ * Builds 10 rich, age-appropriate quiz questions strictly tailored to the educational tier and chapter concepts
  */
 function buildTierQuiz(
   tier: LevelTier,
@@ -307,7 +594,6 @@ function buildTierQuiz(
     }
   }
 
-  // Number of MCQs vs text questions depending on tier
   const targetTotal = 10;
   const concepts = matchedChap.coreConcepts;
 
@@ -317,13 +603,12 @@ function buildTierQuiz(
     const concept = concepts[idx % concepts.length] || `Point clé ${idx + 1}`;
 
     if (tier === "primary") {
-      // Primary questions: warm, concrete, multiple choice with rotating correct index
       const correctIdx = idx % 4;
       const options = [
-        `Une règle très utile pour réussir ses exercices et comprendre ${subject}`,
-        `Une formule compliquée réservée aux savants adultes`,
-        `Une idée fausse qu'il ne faut jamais écouter`,
-        `Un dessin qui ne sert à rien dans la leçon`
+        `Une règle très utile pour bien réfléchir, comprendre le cours et trouver la bonne réponse`,
+        `Une formule magique réservée uniquement aux adultes savants`,
+        `Une erreur qu'il ne faut surtout jamais faire dans son cahier`,
+        `Un dessin sans importance qui n'a aucun rapport avec la leçon`
       ];
       // Rotate correct answer position
       const temp = options[0];
@@ -331,31 +616,29 @@ function buildTierQuiz(
       options[correctIdx] = temp;
 
       if (idx === 9) {
-        // One open text question for primary
         quiz.push({
           type: "text",
-          question: `Raconte avec tes propres mots ce que tu as appris sur "${concept}" dans ce cours.`,
+          question: `Raconte avec tes propres mots ce que tu as appris sur "${concept}" dans cette leçon de ${subject}.`,
           options: [],
-          correctAnswerText: `${concept} nous apprend comment observer et résoudre les questions de ${subject} en classe de ${level}.`,
-          explanation: `Bravo ! Pour avoir tous les points, il suffit d'expliquer calmement la règle de la leçon avec tes mots à toi.`
+          correctAnswerText: `${concept} nous montre la méthode facile pour réussir nos exercices de ${subject} en classe de ${level}.`,
+          explanation: `Bravo ! Pour avoir tous les points, il suffit d'expliquer calmement la règle apprise avec tes propres mots.`
         });
       } else {
         quiz.push({
           type: "mcq",
-          question: `Dans la leçon "${chapterTitle}", que signifie la notion "${concept}" ?`,
+          question: `Dans la leçon "${chapterTitle}", comment utilise-t-on la notion "${concept}" ?`,
           options,
           correctAnswerIndex: correctIdx,
           explanation: `Explication : "${concept}" est une notion clé que nous avons étudiée ensemble pour bien progresser en ${subject} !`
         });
       }
     } else if (tier === "college") {
-      // College questions
       const correctIdx = (idx * 2 + 1) % 4;
       const options = [
-        `Une propriété secondaire qui ne s'applique qu'en cas d'erreur de calcul`,
-        `Une règle fondamentale qui permet de justifier avec rigueur la démarche dans les exercices`,
-        `Une règle ancienne qui a été abandonnée dans le programme moderne`,
-        `Un résultat facultatif qu'on n'utilise jamais au Brevet`
+        `Une approximation facultative qu'on n'utilise que si le résultat est impossible`,
+        `Une règle fondamentale du cours qui permet de justifier avec rigueur chaque étape de sa démonstration`,
+        `Une règle historique ancienne qui n'est plus du tout acceptée dans les devoirs actuels`,
+        `Un détail secondaire qui ne rapporte aucun point lors des évaluations du Brevet`
       ];
       const temp = options[1];
       options[1] = options[correctIdx];
@@ -366,8 +649,8 @@ function buildTierQuiz(
           type: "text",
           question: `Énoncez la démarche méthodique permettant d'appliquer "${concept}" dans la résolution d'un exercice de ${chapterTitle}.`,
           options: [],
-          correctAnswerText: `On identifie les données de l'énoncé, on cite la propriété de ${concept}, puis on effectue les déductions logiques.`,
-          explanation: `Explication attendue : La réponse doit faire apparaître les données utiles, la citation de la règle et la justification ordonnée.`
+          correctAnswerText: `On identifie les données de l'énoncé, on cite la propriété exacte de ${concept}, puis on effectue les déductions logiques en précisant les unités.`,
+          explanation: `Explication attendue : La réponse doit faire apparaître les données utiles, la citation de la règle du cours et la justification ordonnée.`
         });
       } else {
         quiz.push({
@@ -375,17 +658,16 @@ function buildTierQuiz(
           question: `Au collège (${level}), quel est le rôle principal de "${concept}" dans "${chapterTitle}" ?`,
           options,
           correctAnswerIndex: correctIdx,
-          explanation: `Explication : "${concept}" fait partie des notions fondamentales du programme permettant de structurer une démonstration géométrique ou algébrique rigoureuse.`
+          explanation: `Explication : "${concept}" fait partie des notions fondamentales du programme permettant de structurer une démonstration rigoureuse.`
         });
       }
     } else if (tier === "lycee") {
-      // Lycée questions
       const correctIdx = (idx * 3 + 2) % 4;
       const options = [
         `Elle permet uniquement d'illustrer graphiquement des cas triviaux sans portée théorique`,
-        `Elle exige de négliger les hypothèses aux limites pour simplifier le résultat`,
+        `Elle exige de négliger les hypothèses aux limites pour simplifier le calcul final`,
         `Elle fournit un cadre formel dont la validité requiert la vérification explicite des hypothèses du théorème`,
-        `Elle est contredite par les principes fondamentaux de ${subject}`
+        `Elle est contredite par les principes fondamentaux de conservation en ${subject}`
       ];
       const temp = options[2];
       options[2] = options[correctIdx];
@@ -396,7 +678,7 @@ function buildTierQuiz(
           type: "text",
           question: `Dans le cadre du programme de ${level}, quelles conditions préalables doivent être impérativement satisfaites pour mobiliser "${concept}" ?`,
           options: [],
-          correctAnswerText: `Il faut vérifier les hypothèses de validité du domaine de définition, la continuité ou dérivation, et la cohérence dimensionnelle.`,
+          correctAnswerText: `Il faut vérifier les hypothèses de validité du domaine de définition, la régularité du système et la cohérence dimensionnelle des grandeurs.`,
           explanation: `Critère de validation : La justification doit expliciter les hypothèses requises par le théorème et le cadre d'application formel.`
         });
       } else {
@@ -413,9 +695,9 @@ function buildTierQuiz(
       const correctIdx = (idx + 1) % 4;
       const options = [
         `Elle ne possède qu'une valeur heuristique approchée sans formalisme démontrable`,
-        `Elle constitue un théorème structurel fondamental assurant la régularité et l'isomorphisme dans l'espace considéré`,
-        `Elle est restreinte aux espaces vectoriels de dimension 1 et devient divergente ensuite`,
-        `Elle impose la dégénérescence des opérateurs linéaires adjoints`
+        `Elle constitue un théorème structurel fondamental assurant la régularité, la compacité et l'unicité dans l'espace considéré`,
+        `Elle est strictement restreinte aux espaces vectoriels de dimension 1 et devient divergente ensuite`,
+        `Elle impose la dégénérescence systématique des opérateurs linéaires adjoints`
       ];
       const temp = options[1];
       options[1] = options[correctIdx];
@@ -426,7 +708,7 @@ function buildTierQuiz(
           type: "text",
           question: `Formalisez le rôle théorique de "${concept}" dans la preuve ou l'analyse asymptotique de "${chapterTitle}".`,
           options: [],
-          correctAnswerText: `${concept} assure les conditions de régularité, de compacité ou de convergence nécessaires à la complétude de la démonstration.`,
+          correctAnswerText: `${concept} assure les conditions de régularité, de compacité ou de convergence nécessaires à la complétude de la démonstration dans l'espace fonctionnel considéré.`,
           explanation: `Attente universitaire : Rigueur dans la définition des espaces topologiques/algébriques et justification des lemmes intermédiaires.`
         });
       } else {
@@ -556,7 +838,8 @@ export const OfflineAiService = {
     const tier = detectLevelTier(level);
     const cacheKey = `${OFFLINE_CURRICULUM_PREFIX}${tier}_${normalizeKey(level)}_${normalizeKey(subject)}`;
 
-    const saved = localStorage.getItem(cacheKey);
+    const isBrowser = typeof window !== "undefined" && typeof localStorage !== "undefined";
+    const saved = isBrowser ? localStorage.getItem(cacheKey) : null;
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -565,7 +848,8 @@ export const OfflineAiService = {
       }
     }
 
-    const { objectives, chapters: tierChapters } = getTierSubjectData(level, subject, tier);
+    const { objectives, chapters: rawTierChapters, domainName } = getTierSubjectData(level, subject, tier);
+    const tierChapters = ensureSevenToEightChapters(rawTierChapters, level, subject, tier, domainName);
 
     // Map into formal Chapter structures
     const chapters: Chapter[] = tierChapters.map((ch, idx) => ({
@@ -588,10 +872,12 @@ export const OfflineAiService = {
       chapterScores: {}
     };
 
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify(result));
-    } catch (e) {
-      console.warn("[Offline AI] Could not cache curriculum to localStorage:", e);
+    if (isBrowser) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(result));
+      } catch (e) {
+        console.warn("[Offline AI] Could not cache curriculum to localStorage:", e);
+      }
     }
 
     return result;
@@ -604,7 +890,8 @@ export const OfflineAiService = {
     const tier = detectLevelTier(level);
     const cacheKey = `${OFFLINE_CHAPTER_PREFIX}${tier}_${normalizeKey(level)}_${normalizeKey(subject)}_${normalizeKey(chapterTitle)}`;
 
-    const saved = localStorage.getItem(cacheKey);
+    const isBrowser = typeof window !== "undefined" && typeof localStorage !== "undefined";
+    const saved = isBrowser ? localStorage.getItem(cacheKey) : null;
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -613,14 +900,19 @@ export const OfflineAiService = {
       }
     }
 
-    const { chapters: tierChapters, domainName } = getTierSubjectData(level, subject, tier);
+    const { chapters: rawTierChapters, domainName } = getTierSubjectData(level, subject, tier);
+    const tierChapters = ensureSevenToEightChapters(rawTierChapters, level, subject, tier, domainName);
 
     // Match the chapter from the tier's curated knowledge
     const normSearch = normalizeKey(chapterTitle);
-    const matchedChap = tierChapters.find(c => {
+    let matchedChap = tierChapters.find(c => {
       const normC = normalizeKey(c.title);
       return normC.includes(normSearch) || normSearch.includes(normC);
-    }) || tierChapters[0];
+    });
+
+    if (!matchedChap) {
+      matchedChap = synthesizeChapterKnowledge(chapterTitle, level, subject, tier, domainName);
+    }
 
     // Generate authentic lesson markdown
     const content = buildLevelAdaptedLesson(tier, level, subject, chapterTitle, matchedChap, domainName);
@@ -650,10 +942,12 @@ export const OfflineAiService = {
       quiz
     };
 
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify(result));
-    } catch (e) {
-      console.warn("[Offline AI] Could not cache chapter details to localStorage:", e);
+    if (isBrowser) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(result));
+      } catch (e) {
+        console.warn("[Offline AI] Could not cache chapter details to localStorage:", e);
+      }
     }
 
     return result;

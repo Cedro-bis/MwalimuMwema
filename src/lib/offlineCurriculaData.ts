@@ -53,11 +53,11 @@ export interface SubjectKnowledgeTier {
 
 export const TIERED_SUBJECT_KNOWLEDGE: SubjectKnowledgeTier[] = [
   // =================================================================
-  // 1. MATHÉMATIQUES
+  // 1. MATHÉMATIQUES (Tronc commun général)
   // =================================================================
   {
     domainName: "Mathématiques",
-    keywords: ["math", "algebre", "geometrie", "analyse", "arithmetique", "calcul", "trigonometrie", "probabilite", "statistique", "derivee", "integrale"],
+    keywords: ["mathematiques", "maths", "math", "analyse mathematique", "calcul numerique", "tronc commun maths"],
     tiers: {
       primary: {
         objectives: [
@@ -955,11 +955,11 @@ export const TIERED_SUBJECT_KNOWLEDGE: SubjectKnowledgeTier[] = [
   },
 
   // =================================================================
-  // 3. INFORMATIQUE ET PROGRAMMATION
+  // 3. INFORMATIQUE ET ALGORITHMIQUE (Python & Tronc Commun NSI)
   // =================================================================
   {
     domainName: "Informatique et Algorithmique",
-    keywords: ["informatique", "python", "algorithme", "programmation", "code", "donnees", "web", "reseau", "base de donnees", "sql", "ia", "intelligence artificielle"],
+    keywords: ["informatique", "python", "algorithme", "algorithmique", "science informatique", "programmation python", "nsi", "initiation python"],
     tiers: {
       primary: {
         objectives: [
@@ -1275,63 +1275,107 @@ export const TIERED_SUBJECT_KNOWLEDGE: SubjectKnowledgeTier[] = [
 ];
 
 /**
- * Generates an adaptive, level-tailored generic curriculum for any bespoke subject
- * when the subject doesn't match predefined subjects.
+ * Analyzes a subject to detect its academic field for syllabus structuring
+ */
+function detectAcademicDomain(subject: string): "science" | "biomedical" | "tech" | "management" | "humanities" | "legal" | "general" {
+  const s = subject.toLowerCase();
+  if (/math|physiq|chimi|mecan|optiq|thermo|astron|statist|geometr|algebr|calcul/.test(s)) return "science";
+  if (/bio|medecin|sant|anatomi|physiolog|genet|immunol|pharmaco|ecolog|microbio/.test(s)) return "biomedical";
+  if (/info|programm|algo|donne|data|ia|ai|intel|web|cyber|reseau|systeme|cloud|dev/.test(s)) return "tech";
+  if (/gest|compta|financ|market|commerc|econom|manage|audit|banqu|ressourc/.test(s)) return "management";
+  if (/droit|justic|loi|juridi|constitut|penal|civil|avocat|notair|polit/.test(s)) return "legal";
+  if (/philo|histoir|litterat|sociol|psychol|anthrop|lang|art|geograph|cultur/.test(s)) return "humanities";
+  return "general";
+}
+
+/**
+ * Generates an adaptive, highly structured, 5-chapter syllabus conforming to the target subject and level tier
  */
 export function generateGenericCurriculumForTier(level: Level, subject: string, tier: LevelTier): { objectives: string[]; chapters: ChapterKnowledge[] } {
   const cap = subject.charAt(0).toUpperCase() + subject.slice(1);
+  const domain = detectAcademicDomain(subject);
 
   if (tier === 'primary') {
     return {
       objectives: [
-        `Découvrir les bases faciles et amusantes de ${subject} adaptées aux élèves du primaire.`,
-        `Comprendre le vocabulaire essentiel avec des mots simples et des images du quotidien.`,
-        `Réaliser des exercices guidés pas-à-pas avec des exemples très concrets.`,
-        `Prendre confiance en soi et réussir le petit quiz final avec le sourire.`
+        `Découvrir les bases faciles et passionnantes de ${subject} pour la classe de ${level}.`,
+        `Comprendre les mots essentiels et les règles d'or avec des explications très claires.`,
+        `Observer des exemples de la vie de tous les jours pour bien retenir le cours.`,
+        `S'entraîner avec des petits exercices guidés pas-à-pas et réussir le quiz avec succès.`
       ],
       chapters: [
         {
           title: `Découverte et Premiers Pas en ${cap}`,
-          desc: `Qu'est-ce que ${subject} ? Une histoire simple pour tout comprendre sans se tromper.`,
-          coreConcepts: [`À quoi sert ${subject} dans la vraie vie`, `Les 3 mots magiques à retenir`, `Observer et reconnaître autour de soi`, `La première règle d'or`],
-          practicalEx: `Exemple tout simple inspiré de l'école et de la maison pour bien comprendre.`,
-          formulas: [`Règle d'or : Bien lire la question avant de répondre !`],
+          desc: `Qu'est-ce que ${subject} ? Une aventure passionnante pour comprendre les bases sans se tromper.`,
+          coreConcepts: [`À quoi sert ${subject} au quotidien`, `Les 3 mots indispensables du chapitre`, `Observer le monde qui nous entoure`, `La première règle de réussite`],
+          practicalEx: `Exemple guidé : identifier où l'on rencontre ${subject} à l'école et à la maison.`,
+          formulas: [`Règle d'or : Bien lire l'énoncé et observer avant de répondre !`],
           sampleQuestions: [
             {
-              question: `Pourquoi est-il important de découvrir "${subject}" ?`,
-              options: [`Pour apprendre de nouvelles choses passionnantes et progresser`, `C'est inutile`, `Pour perdre du temps`, `Pour rien du tout`],
+              question: `Pourquoi commence-t-on par bien observer avant de résoudre un problème en ${subject} ?`,
+              options: [`Pour repérer tous les indices utiles sans se tromper`, `Pour perdre du temps`, `C'est obligatoire sans raison`, `Pour faire comme le voisin`],
               correctIndex: 0,
-              explanation: `Apprendre ${subject} permet de mieux comprendre le monde et de développer ses connaissances pas à pas.`
+              explanation: `L'observation attentive permet de réunir les informations essentielles et de choisir la bonne méthode.`
             }
           ]
         },
         {
-          title: `Les Règles et Secrets Faciles de ${cap}`,
-          desc: `Les astuces de Mwalimu pour devenir un champion de ${subject} en s'amusant.`,
-          coreConcepts: [`La méthode pas à pas`, `Comment éviter les petits pièges`, `Les exemples à retenir par cœur`, `Mon petit mémo illustré`],
-          practicalEx: `Résolution d'un petit problème amusant guidé étape par étape.`,
-          formulas: [`Astuce de Mwalimu : La pratique régulière rend fort !`],
+          title: `Les Notions et Outils Clés de ${cap}`,
+          desc: `Découvrir les outils indispensables et les règles simples pour bien travailler.`,
+          coreConcepts: [`Le vocabulaire propre à ${subject}`, `L'outil principal à utiliser`, `Reconnaître les situations faciles`, `Prendre de bonnes habitudes`],
+          practicalEx: `Application pratique pas-à-pas avec l'aide des conseils de Mwalimu.`,
+          formulas: [`Outil clé : Associer chaque question à la règle correspondante`],
           sampleQuestions: [
             {
-              question: `Quelle est la meilleure façon de réussir un exercice de ${subject} ?`,
-              options: [`Suivre la méthode pas à pas avec calme et attention`, `Répondre au hasard`, `Ne rien lire`, `Abandonner`],
+              question: `Quel réflexe permet de réussir ses exercices de ${subject} ?`,
+              options: [`Appliquer la règle apprise dans la leçon étape par étape`, `Répondre au hasard`, `Ne jamais relire`, `Copier sans comprendre`],
               correctIndex: 0,
-              explanation: `Prendre son temps et suivre les étapes permet d'arriver à la bonne réponse sans faire d'erreur.`
+              explanation: `Suivre la méthode étape par étape garantit d'arriver au bon résultat en toute autonomie.`
             }
           ]
         },
         {
-          title: `Exercices et Jeux Pratiques sur ${cap}`,
-          desc: `Mettre en pratique ce qu'on a appris avec des petits jeux et des énigmes.`,
-          coreConcepts: [`Tester ce qu'on a compris`, `Faire l'exercice avec l'aide de Mwalimu`, `Expliquer avec ses propres mots`, `Fêter ses progrès`],
-          practicalEx: `Un jeu de questions-réponses pour valider ses nouvelles compétences.`,
-          formulas: [`Formule magique : Observer + Réfléchir = Réussir`],
+          title: `La Règle d'Or et les Astuces de Méthode`,
+          desc: `Comment éviter les petits pièges classiques et réussir à tous les coups.`,
+          coreConcepts: [`La méthode en 3 étapes de Mwalimu`, `Le piège classique à éviter`, `La vérification du résultat`, `Expliquer sa réponse avec une belle phrase`],
+          practicalEx: `Résolution pas-à-pas d'un exercice type avec auto-vérification.`,
+          formulas: [`Méthode : 1. Lire -> 2. Appliquer la règle -> 3. Vérifier`],
           sampleQuestions: [
             {
-              question: `Quand tu as réussi ton exercice de ${subject}, que dois-tu faire ?`,
-              options: [`Vérifier rapidement une dernière fois pour être fier de ton travail`, `Tout effacer`, `Jeter ton cahier`, `Dormir`],
+              question: `Que doit-on toujours faire après avoir trouvé une réponse ?`,
+              options: [`Vérifier rapidement si la réponse a du bon sens et répond bien à la question`, `Effacer immédiatement son travail`, `Fermer son cahier sans relire`, `Demander au hasard`],
               correctIndex: 0,
-              explanation: `Vérifier son travail est le réflexe des meilleurs élèves pour s'assurer d'avoir tout juste.`
+              explanation: `La vérification finale permet de repérer une petite étourderie et d'assurer une note parfaite.`
+            }
+          ]
+        },
+        {
+          title: `Exercices Pratiques et Situations Réelles`,
+          desc: `Mettre en pratique ce qu'on a appris avec des activités concrètes et stimulantes.`,
+          coreConcepts: [`Appliquer les connaissances sur un cas concret`, `Calculer ou rédiger sans hésitation`, `Travailler avec méthode et soin`, `Mesurer ses progrès`],
+          practicalEx: `Défi guidé : résoudre un problème complet et rédiger la conclusion.`,
+          formulas: [`Pratique régulière = Confiance et réussite assurées`],
+          sampleQuestions: [
+            {
+              question: `Face à une question un peu nouvelle en ${subject}, quelle attitude adopter ?`,
+              options: [`Relire calmement la leçon et chercher ce qui ressemble à ce qu'on sait déjà`, `Paniquer et tout laisser vide`, `Deviner sans réfléchir`, `Attendre la fin de l'heure`],
+              correctIndex: 0,
+              explanation: `Faire le lien avec les exemples du cours permet de débloquer la solution avec calme.`
+            }
+          ]
+        },
+        {
+          title: `Grand Bilan et Fête des Connaissances`,
+          desc: `Récapitulatif complet de tout ce qu'on a appris pour devenir un véritable champion !`,
+          coreConcepts: [`Le résumé des points forts`, `Mon aide-mémoire pour la classe`, `Les questions du grand champion`, `Se réjouir de ses réussites`],
+          practicalEx: `Grand défi de révision récapitulant les 4 chapitres précédents.`,
+          formulas: [`Formule du champion : Curiosité + Entraînement = Maîtrise de ${subject}`],
+          sampleQuestions: [
+            {
+              question: `Qu'as-tu développé de plus important en étudiant "${cap}" ?`,
+              options: [`Une méthode claire et des connaissances solides pour toute l'année`, `Juste des notes sur un cahier`, `De la fatigue sans intérêt`, `Rien de nouveau`],
+              correctIndex: 0,
+              explanation: `Acquérir une méthode de travail et des notions claires servira pour toute ta scolarité future.`
             }
           ]
         }
@@ -1342,54 +1386,84 @@ export function generateGenericCurriculumForTier(level: Level, subject: string, 
   if (tier === 'college') {
     return {
       objectives: [
-        `Maîtriser les définitions fondamentales et le vocabulaire disciplinaire de ${subject}.`,
-        `Apprendre à structurer une démarche d'analyse et résoudre les exercices types du collège.`,
-        `Établir des liens entre les notions théoriques et les situations de la vie quotidienne.`,
-        `Se préparer efficacement aux évaluations et au contrôle continu.`
+        `Maîtriser les définitions fondamentales, lois et concepts pivots de ${subject} en classe de ${level}.`,
+        `Développer une démarche de raisonnement déductif rigoureuse ("Je sais que... Or... Donc...").`,
+        `Savoir utiliser les outils méthodologiques et modèles d'analyse de la discipline.`,
+        `Résoudre les exercices types et aborder sereinement les épreuves d'évaluation et du Brevet.`
       ],
       chapters: [
         {
-          title: `Fondements et Vocabulaire Clé de ${cap}`,
-          desc: `Définitions rigoureuses, concepts initiaux et cadre général de la discipline.`,
-          coreConcepts: [`Définitions normalisées de ${subject}`, `Vocabulaire technique obligatoire`, `Principes de base et premières lois`, `Méthode de lecture d'énoncé`],
-          practicalEx: `Étude d'un cas classique permettant d'appliquer directement les définitions du cours.`,
-          formulas: [`Propriété fondamentale de ${subject} (niveau Collège)`],
+          title: `Définitions Fondamentales et Cadre Général de ${cap}`,
+          desc: `Notions indispensables, champ d'application et vocabulaire technique de référence.`,
+          coreConcepts: [`Définitions formelles de ${subject}`, `Champ d'application et objets d'étude`, `Vocabulaire scientifique et technique requis`, `Classification et typologie des notions`],
+          practicalEx: `Analyse guidée des termes d'un énoncé type d'évaluation pour en extraire les grandeurs ou notions clés.`,
+          formulas: [`Principe fondamental : Définition exacte -> Hypothèses valides -> Conclusion logique`],
           sampleQuestions: [
             {
-              question: `Dans l'étude de "${subject}", quel est le premier réflexe méthodologique ?`,
-              options: [`Identifier clairement les données fournies et la question posée`, `Écrire une réponse sans lire`, `Ignorer les définitions`, `Faire une approximation`],
+              question: `Pourquoi est-il indispensable d'utiliser le vocabulaire exact en ${subject} au collège ?`,
+              options: [`Pour éviter toute ambiguïté et structurer rigoureusement sa démonstration`, `C'est une exigence purement esthétique`, `Pour allonger la réponse`, `Pour masquer un manque de calcul`],
               correctIndex: 0,
-              explanation: `Une démarche rigoureuse commence toujours par l'analyse des données de départ et l'identification précise du problème.`
+              explanation: `La précision terminologique garantit la rigueur intellectuelle et conditionne l'attribution des points au Brevet.`
             }
           ]
         },
         {
-          title: `Méthodes d'Analyse et Outils Pratiques de ${cap}`,
-          desc: `Protocoles, démarches guidées et résolution d'exercices d'application directe.`,
-          coreConcepts: [`Étapes de résolution standardisées`, `Utilisation des outils méthodologiques`, `Repérage des erreurs classiques`, `Formulation de la réponse argumentée`],
-          practicalEx: `Exercice type pas-à-pas avec application d'une règle de méthode.`,
-          formulas: [`Règle méthodologique de déduction`],
+          title: `Propriétés Majeures et Mécanismes Fondamentaux`,
+          desc: `Étude des relations de cause à effet, théorèmes et principes directeurs de ${subject}.`,
+          coreConcepts: [`Les propriétés directrices`, `Mécanismes d'interaction ou de transformation`, `Conditions nécessaires et suffisantes`, `Représentations schématiques ou tabulaires`],
+          practicalEx: `Application directe d'une propriété centrale à un cas chiffré ou factuel commenté.`,
+          formulas: [`Propriété pivot : Relation de dépendance directe entre variables ou notions`],
           sampleQuestions: [
             {
-              question: `Comment valide-t-on la cohérence d'un résultat en ${subject} ?`,
-              options: [`En vérifiant qu'il répond à la question et respecte les ordres de grandeur`, `En ne relisant jamais`, `En copiant le voisin`, `En changeant la question`],
+              question: `Quelle étape est primordiale avant d'appliquer une propriété ou un théorème en ${subject} ?`,
+              options: [`Vérifier formellement que toutes les conditions d'application sont satisfaites`, `Faire directement le calcul final`, `Ignorer les hypothèses`, `Prendre le résultat de la question précédente sans vérifier`],
               correctIndex: 0,
-              explanation: `La vérification de cohérence et la conformité des unités ou termes garantissent l'exactitude de la réponse.`
+              explanation: `Un théorème ou une règle n'est valide que si ses conditions d'application préalables sont réunies.`
             }
           ]
         },
         {
-          title: `Approfondissement et Synthèse Préparatoire aux Évaluations`,
-          desc: `Mise en relation des concepts, synthèse transversale et préparation au brevet/contrôles.`,
-          coreConcepts: [`Synthèse des acquis`, `Fiche mémo de révision`, `Résolution d'un problème complet de synthèse`, `Auto-évaluation des compétences`],
-          practicalEx: `Sujet de synthèse guidé intégrant l'ensemble des connaissances du module.`,
-          formulas: [`Bilan des compétences du chapitre`],
+          title: `Méthodes d'Analyse et Démarches Pratiques`,
+          desc: `Protocoles de résolution pas-à-pas, modélisation et outils méthodologiques.`,
+          coreConcepts: [`Grille de décomposition d'un problème`, `Traduction des données textuelles en formalisme disciplinaire`, `Gestion des unités de mesure ou des références`, `Contrôle de vraisemblance`],
+          practicalEx: `Exercice d'application complet résolu selon le canevas officiel : données, propriété invoquée, résolution détaillée, conclusion.`,
+          formulas: [`Méthode standard : Identification des données -> Propriété invoquée -> Calcul/Déduction -> Conclusion`],
           sampleQuestions: [
             {
-              question: `Quel élément garantit une bonne note lors d'une évaluation de ${subject} ?`,
-              options: [`La clarté de la rédaction, la justification méthodique et la précision du vocabulaire`, `La longueur du texte uniquement`, `L'écriture illisible`, `L'absence d'arguments`],
+              question: `Dans la rédaction d'un exercice de ${subject}, comment structurer une justification complète ?`,
+              options: [`Citer explicitement la règle ou formule appliquée avant d'effectuer les calculs numériques`, `Donner uniquement le chiffre final sans phrase`, `Écrire 'C'est évident'`, `Recopier l'énoncé intégralement`],
               correctIndex: 0,
-              explanation: `Les enseignants valorisent particulièrement la précision du vocabulaire et la structure logique de la démonstration.`
+              explanation: `Les barèmes d'évaluation attribuent la majorité des points à la justification méthodique de la démarche.`
+            }
+          ]
+        },
+        {
+          title: `Problèmes Types et Résolutions Rédigées Pas-à-Pas`,
+          desc: `Entraînement approfondi sur des exercices représentatifs des évaluations sommives.`,
+          coreConcepts: [`Problèmes à questions enchaînées`, `Réinvestissement des résultats intermédiaires`, `Pièges classiques et contre-sens fréquents`, `Optimisation du temps de rédaction`],
+          practicalEx: `Problème complet type évaluation officielle résolu pas-à-pas avec commentaire critique et barème indicatif.`,
+          formulas: [`Synthèse opératoire : Démarche analytique appliquée`],
+          sampleQuestions: [
+            {
+              question: `Lorsqu'une question commence par 'En déduire...', quelle stratégie doit-on adopter ?`,
+              options: [`Utiliser impérativement le résultat obtenu à la question précédente`, `Recommencer une démonstration depuis le début`, `Inventer une nouvelle formule`, `Ignorer la question`],
+              correctIndex: 0,
+              explanation: `'En déduire' indique une articulation logique directe avec la question immédiatement antérieure.`
+            }
+          ]
+        },
+        {
+          title: `Synthèse Transversale et Fiche Révision Brevet`,
+          desc: `Vue d'ensemble panoramique du chapitre, carte mentale et auto-évaluation des compétences.`,
+          coreConcepts: [`Schéma de synthèse des notions clés`, `Fiche mémo des formules et définitions`, `Checklist des compétences exigibles`, `Auto-évaluation finale`],
+          practicalEx: `Fiche révision récapitulant les 4 notions piliers, les 3 erreurs fatales et les réflexes d'or.`,
+          formulas: [`Fiche Bilan : Savoirs fondamentaux + Savoir-faire méthodologique`],
+          sampleQuestions: [
+            {
+              question: `Quelle démarche garantit la pérennité des apprentissages en ${subject} ?`,
+              options: [`Ficher régulièrement les notions et refaire les exercices types de manière active`, `Relire passivement la veille du contrôle`, `Apprendre par cœur sans comprendre`, `Ne jamais s'entraîner`],
+              correctIndex: 0,
+              explanation: `L'entraînement actif et la synthèse régulière ancrent durablement les compétences disciplinaires.`
             }
           ]
         }
@@ -1400,54 +1474,84 @@ export function generateGenericCurriculumForTier(level: Level, subject: string, 
   if (tier === 'lycee') {
     return {
       objectives: [
-        `Acquérir une compréhension théorique approfondie des concepts majeurs de ${subject}.`,
-        `Développer une rigueur de raisonnement formalisée adaptée aux exigences du Baccalauréat.`,
-        `Maîtriser les protocoles de démonstration, d'analyse critique et de modélisation formelle.`,
-        `Résoudre des problèmes complexes enchaînant plusieurs compétences interdisciplinaires.`
+        `Acquérir une compréhension théorique approfondie et modélisée de ${subject} au niveau du Baccalauréat.`,
+        `Maîtriser les protocoles de démonstration, les théorèmes fondamentaux et la rigueur formelle.`,
+        `Développer des capacités d'analyse critique, de résolution de problèmes complexes et de synthèse.`,
+        `Préparer avec excellence les épreuves du Baccalauréat et la transition vers l'enseignement supérieur.`
       ],
       chapters: [
         {
-          title: `Problématique et Cadre Théorique de ${cap}`,
-          desc: `Introduction académique, hypothèses fondatrices et formalisation des concepts majeurs.`,
-          coreConcepts: [`Problématique centrale de ${subject}`, `Axiomes et définitions formelles`, `Modélisation abstraite du système`, `Hypothèses de validité`],
-          practicalEx: `Modélisation d'une situation concrète à travers les concepts théoriques du programme de lycée.`,
-          formulas: [`Relation formelle générale : Modèle = f(Variables, Paramètres)`],
+          title: `Cadre Épistémologique et Fondements Théoriques de ${cap}`,
+          desc: `Genèse conceptuelle, problématiques fondatrices et formalisation rigoureuse de ${subject}.`,
+          coreConcepts: [`Problématique centrale de la discipline`, `Définitions axiomatiques et postulats`, `Hypothèses restrictives et domaine de validité`, `Modélisation symbolique ou conceptuelle`],
+          practicalEx: `Formalisation d'un phénomène complexe en variables d'état et paramètres d'influence.`,
+          formulas: [`Cadre formel : Modèle descriptif = f(Variables explicatives, Paramètres d'étalonnage)`],
           sampleQuestions: [
             {
-              question: `Dans le cadre du programme de lycée, quelle est l'exigence première d'une démarche en ${subject} ?`,
-              options: [`Formuler des hypothèses explicites et justifier chaque déduction par un théorème ou principe établi`, `Donner un avis personnel non argumenté`, `Utiliser des approximations non quantifiées`, `Omettre les conditions d'application`],
+              question: `Dans la démarche scientifique de lycée en ${subject}, que garantit l'explicitation des hypothèses de départ ?`,
+              options: [`Elle délimite précisément le domaine de validité des déductions ultérieures`, `Elle alourdit inutilement la copie`, `Elle remplace l'observation empirique`, `Elle n'a aucun impact`],
               correctIndex: 0,
-              explanation: `L'argumentation formelle et la vérification des hypothèses de départ constituent le cœur des critères d'évaluation du lycée.`
+              explanation: `Aucune loi ou modèle n'est universel sans la stricte vérification de son domaine d'hypothèses.`
             }
           ]
         },
         {
-          title: `Démonstrations, Théorèmes et Propriétés Clés`,
-          desc: `Étude analytique poussée, théorèmes fondamentaux et relations de dépendance.`,
-          coreConcepts: [`Théorèmes pivots de la discipline`, `Démonstrations types à maîtriser`, `Relations de cause à effet`, `Analyse dimensionnelle et invariances`],
-          practicalEx: `Démonstration complète d'une propriété fondamentale avec commentaire pédagogique.`,
-          formulas: [`Théorème fondamental de ${subject}`],
+          title: `Lois Fondamentales, Théorèmes et Démonstrations Clés`,
+          desc: `Démonstrations types au programme, théorèmes pivots et relations invariantes.`,
+          coreConcepts: [`Énoncés précis des théorèmes majeurs`, `Structure logique des démonstrations exigibles`, `Relations invariantes et lois de conservation`, `Interprétation physique, géométrique ou analytique`],
+          practicalEx: `Démonstration formelle complète d'un théorème clé avec justification de chaque étape déductive.`,
+          formulas: [`Théorème fondamental de ${subject} (Programme Officiel Lycée)`],
           sampleQuestions: [
             {
-              question: `Pourquoi est-il crucial de vérifier les conditions d'application d'un théorème ?`,
-              options: [`Parce que si les conditions ne sont pas réunies, la conclusion du théorème n'est plus garantie`, `Ce n'est qu'une formalité inutile`, `Pour allonger la copie`, `Pour éviter d'utiliser des formules`],
+              question: `Lorsqu'une condition nécessaire d'un théorème n'est pas remplie, quelle est la conséquence ?`,
+              options: [`La conclusion du théorème ne peut plus être affirmée avec certitude`, `Le résultat reste toujours vrai`, `On peut appliquer le théorème quand même`, `Le théorème s'annule`],
               correctIndex: 0,
-              explanation: `Un théorème n'est valide que dans son domaine d'hypothèses strict : l'absence d'une condition rend le résultat caduc.`
+              explanation: `La rigueur formelle interdit toute conclusion si les hypothèses requises ne sont pas satisfaites.`
             }
           ]
         },
         {
-          title: `Problèmes Types Bac et Études de Cas Approfondies`,
-          desc: `Résolution commentée d'exercices complexes avec barème d'évaluation et pièges à éviter.`,
-          coreConcepts: [`Méthodologie de décomposition du problème`, `Rédaction rigoureuse et formalisée`, `Critique des résultats obtenus`, `Transfert vers des situations inédites`],
-          practicalEx: `Problème de synthèse type épreuve officielle résolu pas-à-pas avec commentaire critique.`,
-          formulas: [`Synthèse méthodologique`],
+          title: `Outils Méthodologiques et Modélisation Quantitative / Qualitative`,
+          desc: `Techniques d'investigation, démarche de résolution experte et calcul d'incertitudes ou nuances.`,
+          coreConcepts: [`Démarche d'investigation scientifique ou analytique`, `Mise en équation ou problématisation`, `Analyse dimensionnelle ou critique conceptuelle`, `Traitement des cas limites`],
+          practicalEx: `Modélisation quantitative d'une situation expérimentale ou textuelle avec analyse de sensibilité.`,
+          formulas: [`Analyse dimensionnelle : [Grandeur] = [M]^a [L]^b [T]^c`],
           sampleQuestions: [
             {
-              question: `Face à un problème complexe à plusieurs questions de ${subject}, quelle stratégie est recommandée ?`,
-              options: [`Repérer l'articulation logique entre les questions et réutiliser les résultats intermédiaires`, `Traiter chaque question sans aucun lien avec les précédentes`, `Ignorer les premières questions`, `Répondre uniquement à la conclusion`],
+              question: `À quoi sert l'analyse dimensionnelle ou la vérification des ordres de grandeur au lycée ?`,
+              options: [`À détecter immédiatement une erreur de calcul ou d'inversion de formule`, `À remplacer la résolution mathématique`, `À gagner du temps sans rédiger`, `C'est une option facultative`],
               correctIndex: 0,
-              explanation: `Les sujets d'examen sont construits selon une progression logique où chaque résultat intermédiaire prépare la conclusion finale.`
+              explanation: `L'homogénéité dimensionnelle est un critère absolu de cohérence physique et analytique.`
+            }
+          ]
+        },
+        {
+          title: `Problèmes de Synthèse Type Bac et Études de Cas Approfondies`,
+          desc: `Résolution commentée d'exercices d'épreuves officielles avec barème de compétences.`,
+          coreConcepts: [`Décomposition méthodique de questions enchaînées`, `Rédaction argumentée selon les critères académiques`, `Confrontation du résultat au modèle théorique`, `Prise de recul critique`],
+          practicalEx: `Problème de synthèse type Bac résolu intégralement avec conseils de rédaction et points de vigilance.`,
+          formulas: [`Synthèse méthodologique Bac : Modélisation -> Calcul formel -> Application numérique/Critique -> Conclusion`],
+          sampleQuestions: [
+            {
+              question: `Face à une question ouverte ou un problème de synthèse au Baccalauréat, que valorise le correcteur ?`,
+              options: [`La démarche d'investigation, la clarté du raisonnement et le regard critique sur le résultat`, `La seule présence du chiffre final`, `Le recopiage de l'énoncé`, `L'omission des étapes intermédiaires`],
+              correctIndex: 0,
+              explanation: `Même en cas d'erreur de calcul mineure, une démarche cohérente et argumentée rapporte l'essentiel des points.`
+            }
+          ]
+        },
+        {
+          title: `Bilan Critique, Enjeux Contemporains et Perspectives Supérieures`,
+          desc: `Ouverture vers l'enseignement supérieur, débats actuels et synthèse des compétences du cycle.`,
+          coreConcepts: [`Limites du modèle étudié et cas réels complexes`, `Enjeux sociétaux, technologiques ou environnementaux`, `Ponts interdisciplinaires`, `Fiche de compétences pour les études supérieures`],
+          practicalEx: `Étude d'un problème contemporain montrant comment les outils du lycée s'articulent avec la recherche moderne.`,
+          formulas: [`Bilan Terminale : Socle conceptuel + Autonomie méthodologique`],
+          sampleQuestions: [
+            {
+              question: `Quelle compétence transversale développée dans ce module est la plus déterminante pour les études supérieures ?`,
+              options: [`L'autonomie intellectuelle et la capacité à modéliser rigoureusement des situations inédites`, `La mémorisation brute sans compréhension`, `L'absence d'esprit critique`, `Le travail sans méthode`],
+              correctIndex: 0,
+              explanation: `L'enseignement supérieur exige la capacité à transposer des cadres théoriques à des problématiques nouvelles.`
             }
           ]
         }
@@ -1455,57 +1559,87 @@ export function generateGenericCurriculumForTier(level: Level, subject: string, 
     };
   }
 
-  // University / Master
+  // University and Master Tier (5 structured academic chapters)
   return {
     objectives: [
-      `Formaliser le cadre axiomatique, théorique et épistémologique de ${subject}.`,
-      `Maîtriser les méthodologies de recherche contemporaine, modèles mathématiques et analytiques de pointe.`,
-      `Analyser de manière critique l'état de l'art, les controverses académiques et les limites des paradigmes existants.`,
-      `Développer des capacités d'investigation autonome, de modélisation avancée et de synthèse scientifique.`
+      `Formaliser le cadre axiomatique, théorique et méthodologique contemporain de ${subject}.`,
+      `Maîtriser les modèles mathématiques, analytiques ou empiriques de pointe dans le domaine.`,
+      `Conduire une analyse critique de l'état de l'art académique et des publications récentes.`,
+      `Développer des capacités d'investigation autonome, de modélisation avancée et de recherche originale.`
     ],
     chapters: [
       {
-        title: `Cadre Épistémologique et Fondements Théoriques de ${cap}`,
-        desc: `Genèse des concepts, structuration axiomatique et formalisme contemporain de la discipline.`,
-        coreConcepts: [`Épistémologie et histoire conceptuelle de ${subject}`, `Axiomatisation et structures formelles sous-jacentes`, `Paradigmes dominants et controverses méthodologiques`, `Définition des espaces de travail et métriques d'analyse`],
+        title: `Cadre Épistémologique et Axiomatique de ${cap}`,
+        desc: `Genèse conceptuelle, formalisme axiomatique et structures fondamentales de ${subject}.`,
+        coreConcepts: [`Épistémologie historique de la discipline`, `Structures axiomatiques et espaces de travail`, `Définition des métriques et fonctionnelles d'analyse`, `Paradigmes concurrents et hypothèses fondamentales`],
         practicalEx: `Examen critique d'un article fondateur et formalisation des hypothèses restrictives du modèle initial.`,
-        formulas: [`Formalisation générale : inf / sup des fonctionnelles caractéristiques`],
+        formulas: [`Formalisation générale : inf/sup des fonctionnelles caractéristiques sur le domaine défini`],
         sampleQuestions: [
           {
-            question: `Dans la recherche universitaire sur "${subject}", quelle est la fonction principale d'une formalisation axiomatique ?`,
-            options: [`Délimiter rigoureusement le champ de validité déductif et éliminer les ambiguïtés sémantiques`, `Rendre le sujet inaccessible`, `Remplacer l'expérimentation concrète`, `Éviter toute confrontation empirique`],
+            question: `Dans la recherche universitaire sur "${subject}", quelle est la fonction première d'une formalisation axiomatique ?`,
+            options: [`Délimiter rigoureusement le champ de validité déductif et éliminer toute ambiguïté sémantique`, `Rendre le sujet opaque`, `Remplacer l'expérimentation concrète`, `Éviter toute confrontation empirique`],
             correctIndex: 0,
             explanation: `L'axiomatisation fournit une base rigoureuse et non contradictoire permettant de déduire l'ensemble des théorèmes du système.`
           }
         ]
       },
       {
-        title: `Modélisation Analytique Avancée et Analyse des Cas Limites`,
-        desc: `Développements mathématiques/formels de haut niveau, lemmes techniques et régimes asymptotiques.`,
-        coreConcepts: [`Dérivation des équations gouvernantes`, `Analyse des singularités et stabilité asymptotique`, `Comportement aux limites et bifurcations`, `Méthodes variationnelles ou empiriques de calibration`],
-        practicalEx: `Résolution analytique complète d'un modèle non-linéaire avec étude de sensibilité aux conditions aux limites.`,
-        formulas: [`Système d'équations fondamentales et conditions de régularité`],
+        title: `Structures Théoriques et Modèles Analytiques Avancés`,
+        desc: `Développements analytiques de haut niveau, lemmes fondamentaux et opérateurs directeurs.`,
+        coreConcepts: [`Systèmes d'équations gouvernantes`, `Propriétés topologiques, spectrales ou asymptotiques`, `Théorèmes d'existence, d'unicité et de régularité`, `Étude des symétries et invariants`],
+        practicalEx: `Dérivation formelle complète des équations de champ ou du système dynamique gouvernant le modèle.`,
+        formulas: [`Système d'équations caractéristiques et conditions de régularité aux limites`],
         sampleQuestions: [
           {
-            question: `Quelle propriété caractérise un régime asymptotique dans un modèle de ${subject} ?`,
-            options: [`Le comportement vers lequel tend le système lorsque l'un des paramètres devient arbitrairement grand ou petit`, `Une solution temporaire fausse`, `L'absence de solution mathématique`, `Une valeur moyenne constante`],
+            question: `Quelle condition garantit l'existence et l'unicité d'une solution dans un problème aux limites en ${subject} ?`,
+            options: [`La coercivité et la continuité de la formulation variationnelle (lemme de Lax-Milgram ou théorème du point fixe)`, `La seule positivité des données`, `L'absence de contraintes`, `Une approximation linéaire`],
             correctIndex: 0,
-            explanation: `L'analyse asymptotique permet d'extraire les lois d'échelle et les invariants directeurs aux limites du domaine de définition.`
+            explanation: `Les théorèmes de point fixe et les lemmes de coercivité constituent le cadre d'analyse universel de régularité des solutions.`
           }
         ]
       },
       {
-        title: `État de l'Art, Débats Scientifiques et Perspectives de Recherche`,
-        desc: `Synthèse critique des publications récentes, questions ouvertes et applications de pointe.`,
-        coreConcepts: [`Revue critique de la littérature scientifique`, `Problématiques ouvertes et impasses actuelles`, `Interdisciplinarité et convergence technologique`, `Protocoles d'expérimentation et d'évaluation par les pairs`],
-        practicalEx: `Élaboration d'une proposition de recherche originale visant à dépasser les limites d'un modèle établi.`,
-        formulas: [`Synthèse bibliographique et critères d'évaluation`],
+        title: `Méthodologie Expérimentale, Empirique et Computationnelle`,
+        desc: `Protocoles de mesure, simulation numérique, traitement des données et analyse des incertitudes.`,
+        coreConcepts: [`Méthodes numériques (différences finies, éléments finis ou inférence statistique)`, `Calibration empirique et estimation des paramètres`, `Contrôle des biais et propagation des incertitudes`, `Reproductibilité et validation croisée`],
+        practicalEx: `Mise en œuvre d'un protocole expérimental ou algorithmique de calibration d'un modèle sous contraintes bruitées.`,
+        formulas: [`Critère d'optimisation : min ||y - f(x, theta)||^2 + lambda R(theta)`],
         sampleQuestions: [
           {
-            question: `Comment valide-t-on une avancée théorique ou empirique dans la recherche académique en ${subject} ?`,
-            options: [`Par l'évaluation par les pairs (peer-review), la reproductibilité des résultats et la confrontation critique aux données`, `Par un vote de popularité en ligne`, `Par la réputation de l'auteur uniquement`, `Sans aucune vérification externe`],
+            question: `Comment valide-t-on la robustesse d'un modèle computationnel ou empirique face au surapprentissage (overfitting) ?`,
+            options: [`Par validation croisée (k-fold cross-validation) et régularisation des paramètres`, `En augmentant indéfiniment les variables sans contrôle`, `En testant uniquement sur les données d'entraînement`, `En supprimant les données discordantes`],
             correctIndex: 0,
-            explanation: `Le processus de peer-review et la reproductibilité constituent le socle de la validation scientifique moderne.`
+            explanation: `La validation croisée sur des échantillons indépendants permet d'évaluer la réelle capacité de généralisation du modèle.`
+          }
+        ]
+      },
+      {
+        title: `Étude de Cas Approfondie, Régimes Limites et Singularités`,
+        desc: `Résolution complète d'un problème complexe de recherche avec analyse des cas limites et bifurcations.`,
+        coreConcepts: [`Analyse des régimes asymptotiques et lois d'échelle`, `Détection des bifurcations et instabilités`, `Comportement aux limites du domaine de validité`, `Confrontation théorie vs observations de laboratoire ou de terrain`],
+        practicalEx: `Résolution analytique d'un régime non-linéaire singulier avec étude de stabilité au sens de Lyapunov.`,
+        formulas: [`Développement asymptotique et exposants critiques : f(x) ~ x^alpha lorsque x -> 0`],
+        sampleQuestions: [
+          {
+            question: `Que permet de révéler l'analyse asymptotique d'un système complexe en ${subject} ?`,
+            options: [`Les lois d'échelle fondamentales et les invariants directeurs lorsque certains paramètres deviennent extrêmes`, `Une approximation sans valeur`, `L'absence de solutions physiques`, `Une moyenne constante inutile`],
+            correctIndex: 0,
+            explanation: `L'analyse aux limites simplifie les équations gouvernantes pour dégager les régimes universels dominants.`
+          }
+        ]
+      },
+      {
+        title: `État de l'Art, Controverses Scientifiques et Perspectives de Recherche`,
+        desc: `Synthèse critique des publications récentes, problématiques ouvertes et convergences interdisciplinaires.`,
+        coreConcepts: [`Revue critique de la littérature internationale indexée`, `Controverses méthodologiques et impasses théoriques actuelles`, `Interdisciplinarité et nouveaux paradigmes émergents`, `Formulation de questions de recherche ouvertes pour thèse ou mémoire`],
+        practicalEx: `Élaboration d'une proposition de recherche scientifique inédite visant à combler une lacune de la littérature établie.`,
+        formulas: [`Matrice d'évaluation critique de l'état de l'art scientifique`],
+        sampleQuestions: [
+          {
+            question: `Dans la pratique scientifique moderne, qu'est-ce qui confère une validité académique à une avancée en ${subject} ?`,
+            options: [`L'évaluation par les pairs (peer-review), la reproductibilité des protocoles et la cohérence théorique`, `Le nombre d'abonnés sur les réseaux sociaux`, `L'opinion de l'auteur sans preuve`, `La tradition ancienne`],
+            correctIndex: 0,
+            explanation: `Le consensus scientifique repose sur la vérification indépendante, la réfutation poppérienne et la reproductibilité des résultats.`
           }
         ]
       }
