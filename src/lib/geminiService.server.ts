@@ -8,7 +8,7 @@ import { Level, Curriculum, Chapter, QuizQuestion, ScienceNews } from "../types"
 import fs from "fs";
 import path from "path";
 
-const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY;
 
 const ai = new GoogleGenAI({
   apiKey: apiKey,
@@ -165,9 +165,15 @@ export const GeminiService = {
     }
 
     const text = await callGeminiWithRetry({
-      contents: `Génère un programme d'étude structuré (curriculum) exhaustif, complet, et riche pour le niveau ou la classe/promotion "${level}" et la matière "${subject}". 
+      contents: `Génère un programme d'étude structuré (curriculum) exhaustif, complet et adapté strictement au niveau pédagogique "${level}" pour la matière "${subject}". 
+      ADAPTATION AU NIVEAU PÉDAGOGIQUE:
+      - Si le niveau est Primaire (ex: CP, CE1, CE2, CM1, CM2) : vocabulaire simple, ludique, bienveillant, chapitres clairs et progressifs sur les bases fondamentales.
+      - Si le niveau est Collège (ex: 6e, 5e, 4e, 3e) : vocabulaire de collège officiel, règles de méthode, préparation au brevet.
+      - Si le niveau est Lycée (ex: 2nde, 1ère, Terminale) : rigueur formelle, théorèmes, préparation approfondie au Baccalauréat.
+      - Si le niveau est Université ou Master : haute exigence académique, formalisme axiomatique, articles de recherche, analyse critique.
+
       Le programme doit être complet et inclure :
-      1. Environ 5 à 10 chapitres logiques couvrant l'intégralité de la matière avec rigueur pédagogique.
+      1. Environ 5 à 10 chapitres logiques couvrant l'intégralité de la matière avec une progression rigoureuse pour ce niveau.
       2. Une liste de 4 objectifs principaux globaux (objectives) d'apprentissage extrêmement clairs et détaillés, adaptés spécifiquement pour le niveau ou la promotion "${level}".`,
       config: {
         responseMimeType: "application/json",
@@ -241,9 +247,14 @@ export const GeminiService = {
       RÈGLE D'UNICITÉ CRITIQUE: Génère un jeu de questions de quiz totalement uniques, nouvelles, inédites et différentes des sessions précédentes pour évaluer l'étudiant. Variez les notions testées.
 
       CONTRÔLE DE FORMAT ET EXIGENCE DE RICHESSE:
-      1. Le "content" doit être un cours magistral d'excellence, extrêmement complet (au moins 5 à 6 grandes sections thématiques détaillées avec sous-chapitres) au format Markdown pur. Évite les résumés hâtifs. Écris des explications profondes, de la théorie solide et des analyses conceptuelles.
-      2. INCLURE SYSTÉMATIÈVEMENT des exemples concrets du monde réel, des cas d'utilisation réels et des blocs de code exhaustifs (avec coloration syntaxique appropriée) si le sujet est technique ou scientifique.
-      3. INCLURE obligatoirement une section "### Références Bibliographiques" à la fin du cours avec des ouvrages académiques réels, reconnus et validés scientifiquement pour approfondir le sujet, adaptés au niveau ou classe "${level}".
+      1. ADAPTATION PÉDAGOGIQUE AU NIVEAU "${level}":
+         - Si Primaire : ton chaleureux et encourageant, phrases courtes et limpides, exemples imagés du quotidien, explications pas à pas sans jargon complexe, astuces simples.
+         - Si Collège : vocabulaire précis conforme aux programmes du collège, méthode rédigée étape par étape, conseils pour les contrôles et le Brevet.
+         - Si Lycée : formalisme rigoureux, théorèmes et démonstrations, résolution de problèmes de spécialité type Baccalauréat.
+         - Si Université/Master : formalisation axiomatique, état de l'art, analyse critique, bibliographie académique de recherche.
+      2. Le "content" doit être un cours magistral d'excellence, extrêmement complet (au moins 5 à 6 grandes sections thématiques détaillées avec sous-chapitres) au format Markdown pur. Évite les résumés hâtifs. Écris des explications profondes, de la théorie solide et des analyses conceptuelles adaptées à ce niveau.
+      3. INCLURE SYSTÉMATIQUEMENT des exemples concrets du monde réel, des cas d'utilisation réels et des blocs de code exhaustifs (avec coloration syntaxique appropriée) si le sujet est technique ou scientifique.
+      4. INCLURE obligatoirement une section "### Références Bibliographiques" à la fin du cours avec des ouvrages académiques réels, reconnus et validés scientifiquement pour approfondir le sujet, adaptés au niveau ou classe "${level}".
       4. RÈGLE D'OR POUR LES LIENS: N'utilisez QUE des liens de recherche ultra-fiables vers Google Books ou Open Library. 
          Exemple : [Titre du Livre - Auteur](https://www.google.com/search?tbm=bks&q=TITRE+AUTEUR)
       5. SI LE LIEN N'EST PAS GARANTI FONCTIONNEL À 100%, NE METTEZ PAS DE LIEN. Affichez simplement la référence textuellement. Mieux vaut pas de lien qu'un lien mort (404).

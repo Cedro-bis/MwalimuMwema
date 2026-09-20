@@ -43,6 +43,8 @@ import { cn } from './lib/utils';
 import { LogOut, User as UserIcon, MessageSquare } from 'lucide-react';
 import { useSEO, SEO_CONFIGS } from './hooks/useSEO';
 import { StructuredData } from './components/StructuredData';
+import { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
+import { PWAInstallButton } from './components/PWAInstallButton';
 
 const getFirstNameInitial = (user: User | null): string => {
   if (!user) return '?';
@@ -184,17 +186,25 @@ const App = () => {
         try {
           // Exécuter en parallèle pour diviser le temps de chargement par deux
           const [_, cloudHistory, profile] = await Promise.all([
-            FirestoreService.ensureUser(user.uid, user.email!),
+            FirestoreService.ensureUser(user.uid, user.email || 'etudiant.horsligne@mwalimu.local'),
             FirestoreService.getUserCurriculums(user.uid),
             FirestoreService.getUserProfile(user.uid)
           ]);
-          setHistory(cloudHistory.map(c => ({
-            id: `${c.level}_${c.subject}`.replace(/\s+/g, '_'),
-            curriculum: c,
-            completedChapters: c.completedChapters || [],
-            chapterScores: c.chapterScores || {},
-            lastUpdated: c.lastAccessed?.toMillis() || Date.now()
-          })));
+          setHistory(cloudHistory.map(c => {
+            let lastUpdated = Date.now();
+            if (c.lastAccessed && typeof c.lastAccessed.toMillis === 'function') {
+              lastUpdated = c.lastAccessed.toMillis();
+            } else if (typeof c.lastAccessed === 'string') {
+              lastUpdated = new Date(c.lastAccessed).getTime() || Date.now();
+            }
+            return {
+              id: `${c.level}_${c.subject}`.replace(/\s+/g, '_'),
+              curriculum: c,
+              completedChapters: c.completedChapters || [],
+              chapterScores: c.chapterScores || {},
+              lastUpdated
+            };
+          }));
 
           if (profile?.photoDataUrl) {
             setCustomPhotoUrl(profile.photoDataUrl);
@@ -215,19 +225,41 @@ const App = () => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         console.log(`[APP] Auth state changed: ${currentUser.email}, checking verification...`);
-        const isVerified = await FirestoreService.checkUserVerification(currentUser.uid);
-        if (isVerified) {
+        const cachedVerification = localStorage.getItem(`mwalimu_verified_${currentUser.uid}`) === 'true';
+        
+        // If offline and previously verified, instantly authorize
+        if (!navigator.onLine && cachedVerification) {
+          console.log(`[APP] Offline mode: user verified from cache.`);
+          setUser(currentUser);
+          setAuthLoading(false);
+          return;
+        }
+
+        const isVerified = await FirestoreService.checkUserVerification(currentUser.uid).catch(() => cachedVerification);
+        if (isVerified || cachedVerification) {
           console.log(`[APP] User is verified, logging in.`);
+          localStorage.setItem(`mwalimu_verified_${currentUser.uid}`, 'true');
           setUser(currentUser);
         } else {
           console.log(`[APP] User is NOT verified, showing auth UI.`);
-          // Don't set user to null immediately to avoid flickering during verification process
-          // unless checkUserVerification definitely says they are not verified
         }
       } else {
-        console.log(`[APP] No user signed in.`);
-        setUser(null);
-        setHistory([]);
+        // Check if user previously chose offline guest access
+        const offlineMode = localStorage.getItem('mwalimu_offline_mode') === 'true';
+        if (offlineMode) {
+          console.log(`[APP] Restoring offline guest user session.`);
+          setUser({
+            uid: 'offline_local_user',
+            email: 'etudiant.horsligne@mwalimu.local',
+            displayName: 'Étudiant Hors-Ligne',
+            photoURL: null,
+            emailVerified: true
+          } as unknown as User);
+        } else {
+          console.log(`[APP] No user signed in.`);
+          setUser(null);
+          setHistory([]);
+        }
       }
       setAuthLoading(false);
     });
@@ -276,7 +308,10 @@ const App = () => {
   const handleStartCourse = async () => {
     if (!subject.trim() || !user) return;
     setLoading(true);
-    setLoadingMessage('Génération de votre programme sur mesure...');
+    const isOffline = localStorage.getItem('mwalimu_offline_mode') === 'true' || 
+                      localStorage.getItem('mwalimu_offline_forced') === 'true' || 
+                      (typeof navigator !== 'undefined' && !navigator.onLine);
+    setLoadingMessage(isOffline ? 'Génération via le moteur IA local Mwalimu...' : 'Génération de votre programme sur mesure...');
     setError(null);
     try {
       const finalLevel = subLevel ? `${level} (${subLevel})` : level;
@@ -285,7 +320,7 @@ const App = () => {
       setCompletedChapters([]);
       setChapterScores({});
       setView('curriculum');
-      // Save to cloud
+      // Save curriculum
       await FirestoreService.saveCurriculum(user.uid, data);
     } catch (error: any) {
       console.error("Failed to generate curriculum:", error);
@@ -332,7 +367,10 @@ const App = () => {
     }
 
     setLoading(true);
-    setLoadingMessage(`Rédaction du chapitre : ${chapter.title}...`);
+    const isOffline = localStorage.getItem('mwalimu_offline_mode') === 'true' || 
+                      localStorage.getItem('mwalimu_offline_forced') === 'true' || 
+                      (typeof navigator !== 'undefined' && !navigator.onLine);
+    setLoadingMessage(isOffline ? `Rédaction immédiate (IA locale) : ${chapter.title}...` : `Rédaction du chapitre : ${chapter.title}...`);
     setError(null);
     try {
       const details = await GeminiService.generateChapterDetails(curriculum.level, curriculum.subject, chapter.title);
@@ -504,16 +542,19 @@ const App = () => {
       {user && isMathSubject && (view === 'lesson' || view === 'curriculum') && <Calculator />}
 
       {/* --- Header --- */}
-      <header className="fixed top-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl z-50 px-10 flex items-center justify-between border-b border-black print:hidden">
+      <header className="fixed top-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl z-50 px-4 md:px-10 flex items-center justify-between border-b border-black print:hidden">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('onboarding')}>
-          <h1 className="text-2xl font-black text-black tracking-tighter">
+          <h1 className="text-xl md:text-2xl font-black text-black tracking-tighter">
             MwalimuMwema
           </h1>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 md:gap-4">
+          <PWAInstallButton />
+          <OfflineStatusIndicator />
+
           {curriculum && view !== 'onboarding' && view !== 'profile' && (
-            <div className="bg-white border border-black px-5 py-2 rounded-full text-xs font-bold text-black hidden md:flex items-center gap-3">
+            <div className="bg-white border border-black px-4 py-1.5 rounded-full text-xs font-bold text-black hidden xl:flex items-center gap-2.5">
               <span className="opacity-40 uppercase tracking-widest text-[9px]">Niveau</span>
               <span>{curriculum.level}</span>
               <span className="w-1 h-1 rounded-full bg-black/20" />
@@ -521,10 +562,11 @@ const App = () => {
             </div>
           )}
           {user && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <button
                 onClick={() => setView('profile')}
-                className="w-10 h-10 bg-black text-white rounded-full border border-black flex items-center justify-center overflow-hidden hover:scale-105 transition-transform font-bold text-sm uppercase select-none"
+                className="w-9 h-9 md:w-10 md:h-10 bg-black text-white rounded-full border border-black flex items-center justify-center overflow-hidden hover:scale-105 transition-transform font-bold text-xs md:text-sm uppercase select-none cursor-pointer"
+                title="Mon Profil"
               >
                 {(customPhotoUrl || user.photoURL) ? (
                   <img src={customPhotoUrl || user.photoURL || undefined} alt="avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
@@ -533,10 +575,17 @@ const App = () => {
                 )}
               </button>
               <button
-                onClick={() => signOut(auth)}
-                className="p-2 hover:bg-slate-100 rounded-full transition-colors order-last md:order-none"
+                onClick={() => {
+                  localStorage.removeItem('mwalimu_offline_mode');
+                  signOut(auth).catch(() => {});
+                  setUser(null);
+                  setHistory([]);
+                  setView('onboarding');
+                }}
+                className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full transition-colors order-last md:order-none cursor-pointer text-slate-700 hover:text-black"
+                title="Déconnexion"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
           )}

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="geminiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <path d="M 256 120 L 416 195 L 256 270 L 96 195 Z" fill="url(#geminiGrad)" />
+  <path d="M 160 226 L 160 286 C 160 320, 352 320, 352 286 L 352 226 L 256 270 Z" fill="#4338ca" />
+  <path d="M 400 205 L 420 280 L 428 280 L 410 200 Z" fill="url(#goldGrad)" />
+  <circle cx="424" cy="285" r="8" fill="#f59e0b" />
+  <path d="M 120 340 Q 256 310 256 370 Q 256 310 392 340 L 380 410 Q 256 380 256 430 Q 256 380 132 410 Z" fill="#ffffff" fill-opacity="0.95" />
+  <path d="M 256 370 L 256 430" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round" />
+  <path d="M 400 110 Q 400 135 425 135 Q 400 135 400 160 Q 400 135 375 135 Q 400 135 400 110 Z" fill="url(#goldGrad)" />
+</svg>

@@ -332,13 +332,33 @@ export const AuthUI = ({ onAuthSuccess }: { onAuthSuccess: (user: User) => void 
           </button>
         </form>
 
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <button 
             onClick={() => setIsLogin(!isLogin)}
-            className="text-xs font-black uppercase tracking-widest text-black/40 hover:text-black transition-colors"
+            className="text-xs font-black uppercase tracking-widest text-black/40 hover:text-black transition-colors block mx-auto cursor-pointer"
           >
             {isLogin ? "Pas de compte ? Créer" : "Déjà inscrit ? Connexion"}
           </button>
+
+          <div className="pt-4 border-t border-black/10">
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('mwalimu_offline_mode', 'true');
+                const offlineUser = {
+                  uid: 'offline_local_user',
+                  email: 'etudiant.horsligne@mwalimu.local',
+                  displayName: 'Étudiant Hors-Ligne',
+                  photoURL: null,
+                  emailVerified: true
+                } as unknown as User;
+                onAuthSuccess(offlineUser);
+              }}
+              className="w-full py-3 px-4 rounded-full border-2 border-dashed border-slate-300 hover:border-slate-800 text-slate-700 hover:text-black text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer bg-slate-50 hover:bg-slate-100"
+            >
+              <span>Accéder directement en Mode Hors-Ligne (Sans Compte)</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
